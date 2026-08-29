@@ -1,11 +1,10 @@
 'use client';
 
 import { useEffect, useState, useRef, useMemo } from 'react';
-import type { WebMCPTool } from '../types.js';
+import type { WebMCPTool, WebMCPOptions } from '../types.js';
 import { isWebMCPSupported } from '../internal/utils.js';
-import { NotSupportedError } from '../errors.js';
+import { webmcp } from '../webmcp.js';
 
-// Check helper to see if value is a WebMCPTool
 function isTool<F extends (...a: any) => any>(v: WebMCPTool<F> | F): v is WebMCPTool<F> {
   return !!(v as any)?.__webmcpBrand;
 }
@@ -18,22 +17,53 @@ export type UseWebMCPResult = {
   status: 'unregistered' | 'registering' | 'registered' | 'error' | 'unsupported';
 };
 
-/**
- * Register a tool for the lifetime of the component.
- * Matches WebMCP spec AbortSignal lifecycle and StrictMode double-mount safety via dedup registry.
- *
- * @param tool - WebMCPTool from webmcp(fn) or raw fn (will warn and no-op)
- * @param opts.enabled - if false, inert
- */
+// Overloads
 export function useWebMCP<F extends (...args: any) => any>(
-  tool: WebMCPTool<F> | F,
+  tool: WebMCPTool<F>,
   opts?: { enabled?: boolean },
-): UseWebMCPResult {
+): UseWebMCPResult;
+export function useWebMCP<F extends (...args: any) => any>(
+  fn: F,
+  opts?: WebMCPOptions<F> & { enabled?: boolean },
+): WebMCPTool<F> & UseWebMCPResult;
+export function useWebMCP<F extends (...args: any) => any>(
+  arg: WebMCPTool<F> | F,
+  opts?: any,
+): UseWebMCPResult | (WebMCPTool<F> & UseWebMCPResult) {
   const enabled = opts?.enabled ?? true;
+
+  // Determine if arg is raw function vs already-wrapped tool
+  const isRawFunction = useMemo(() => {
+    return typeof arg === 'function' && !isTool(arg as any);
+  }, [arg]);
+
+  // For raw function, create (and memoize) a tool. For already-wrapped, use it directly.
+  // We separate webmcp options from hook options (enabled).
+  // Deps are granular to keep tool stable when caller passes inline opts with same values.
+  const tool: WebMCPTool<F> = useMemo(() => {
+    if (isRawFunction) {
+      const { enabled: _e, ...webmcpOpts } = (opts ?? {}) as any;
+      return webmcp(arg as F, webmcpOpts as WebMCPOptions<F>);
+    }
+    return arg as WebMCPTool<F>;
+  }, [
+    arg,
+    isRawFunction,
+    opts?.name,
+    opts?.description,
+    opts?.schema,
+    opts?.fields,
+    opts?.annotations,
+    opts?.scope,
+    opts?.global,
+    opts?.strict,
+    opts?.outputSchema,
+    opts?.enabled,
+  ]);
+
   const [registered, setRegistered] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const supported = useMemo(() => isWebMCPSupported(), []);
-  // polyfill detection — if isWebMCPSupported true and shim marker present
   const isPolyfilled = useMemo(() => {
     if (typeof document === 'undefined') return false;
     const docAny = document as any;
@@ -50,23 +80,8 @@ export function useWebMCP<F extends (...args: any) => any>(
       return;
     }
 
-    const t: any = toolRef.current as any;
+    const webTool = toolRef.current;
 
-    if (!isTool(t as any)) {
-      // Plain fn passed — warn, optionally auto-wrap? For 0.1 we no-op with warning
-      if (typeof console !== 'undefined') {
-        // eslint-disable-next-line no-console
-        console.warn('[simple-webmcp] useWebMCP expected webmcp(fn) tool, got plain function. Wrap with webmcp() first.');
-      }
-      setError(new Error('useWebMCP: wrap fn with webmcp() first'));
-      setRegistered(false);
-      return;
-    }
-
-    const webTool = t as WebMCPTool<F>;
-
-    // If tool was created with global:true, it's already global — just track status
-    // We still sync registered state
     if ((webTool as any).status === 'registered') {
       setRegistered(true);
       setError(null);
@@ -75,17 +90,13 @@ export function useWebMCP<F extends (...args: any) => any>(
 
     let cancelled = false;
     let unregister: (() => void) | null = null;
-
-    // Async register — hook's job is to handle AbortSignal mapping
     const controller = new AbortController();
 
     webTool
       .register({ signal: controller.signal })
       .then((u) => {
         if (cancelled) {
-          try {
-            u();
-          } catch {}
+          try { u(); } catch {}
           return;
         }
         unregister = u;
@@ -101,25 +112,49 @@ export function useWebMCP<F extends (...args: any) => any>(
 
     return () => {
       cancelled = true;
-      try {
-        controller.abort();
-      } catch {}
+      try { controller.abort(); } catch {}
       if (unregister) {
-        try {
-          unregister();
-        } catch {}
+        try { unregister(); } catch {}
       } else {
-        // If registration still pending, ensure tool's own unregister clears
-        try {
-          (webTool as any).unregister?.();
-        } catch {}
+        try { (webTool as any).unregister?.(); } catch {}
       }
       setRegistered(false);
     };
-    // Re-run if tool identity changes or enabled
   }, [enabled, supported, tool]);
 
   const status = !supported ? 'unsupported' : error ? 'error' : registered ? 'registered' : enabled ? 'registering' : 'unregistered';
+  const result: UseWebMCPResult = { supported: !!supported, registered, error, isPolyfilled, status: status as any };
 
-  return { supported: !!supported, registered, error, isPolyfilled, status: status as any };
+  // For raw function case, return the tool augmented with status so callers get callable + state in one.
+  // We create a new callable that delegates to the original tool, to avoid mutating the tool's
+  // non-configurable (now configurable) status getter and to provide hook state alongside.
+  if (isRawFunction) {
+    const augmented: any = (...args: any[]) => (tool as any)(...args);
+    // Copy tool's own props (brand, definition, register, etc.)
+    Object.assign(augmented, tool);
+    // Also copy prototype chain for instanceof checks
+    Object.setPrototypeOf(augmented, Object.getPrototypeOf(tool));
+    // Overlay hook result (supported, registered, error, isPolyfilled, status)
+    for (const [k, v] of Object.entries(result)) {
+      Object.defineProperty(augmented, k, {
+        value: v,
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      });
+    }
+    // Keep tool reference for advanced use
+    Object.defineProperty(augmented, '__rawTool', {
+      value: tool,
+      writable: false,
+      configurable: true,
+      enumerable: false,
+    });
+    return augmented as WebMCPTool<F> & UseWebMCPResult;
+  }
+  return result;
 }
+
+// Alias — `useTool` is the same as `useWebMCP` when given a raw function.
+// Provides the 1-line ergonomic: const tool = useTool(fn, opts) -> visible by default.
+export const useTool = useWebMCP;

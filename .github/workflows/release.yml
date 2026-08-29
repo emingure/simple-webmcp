@@ -1,0 +1,92 @@
+name: Release
+
+# Tag-triggered release: npm publish + GitHub Release with provenance
+# Usage: npm run release:manual:patch|minor|major  -> pushes v0.x.y tag -> this runs
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. v0.1.1) — leave empty to use current ref'
+        required: false
+
+permissions:
+  contents: write      # for gh release create
+  id-token: write      # for npm provenance
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          registry-url: https://registry.npmjs.org/
+
+      - run: npm ci
+
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ -n "${{ inputs.tag }}" ]; then
+            echo "tag=${{ inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Verify tag matches package.json version
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          TAG_VERSION=${{ steps.tag.outputs.tag }}
+          TAG_VERSION=${TAG_VERSION#v}
+          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
+            echo "::warning::package.json version ($PKG_VERSION) != tag ($TAG_VERSION). Using tag."
+          fi
+
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+      - name: Publish to npm (with provenance)
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Extract changelog for this version
+        id: changelog
+        run: |
+          VERSION=${{ steps.tag.outputs.tag }}
+          VERSION=${VERSION#v}
+          # Extract section for VERSION from CHANGELOG.md (Keep a Changelog format)
+          awk -v ver="## $VERSION" '
+            $0 ~ ver {flag=1; print; next}
+            /^## [0-9]+\.[0-9]+\.[0-9]+/ && flag {exit}
+            flag
+          ' CHANGELOG.md > /tmp/notes.md || true
+          if [ ! -s /tmp/notes.md ]; then
+            echo "## $VERSION" > /tmp/notes.md
+            echo "" >> /tmp/notes.md
+            git log --oneline $(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo HEAD~5)..HEAD >> /tmp/notes.md || echo "- see commits" >> /tmp/notes.md
+          fi
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          cat /tmp/notes.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: ${{ steps.tag.outputs.tag }}
+          body: ${{ steps.changelog.outputs.notes }}
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(steps.tag.outputs.tag, '-') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

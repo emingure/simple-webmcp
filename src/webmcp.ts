@@ -1,6 +1,6 @@
 import type { WebMCPOptions, WebMCPTool, ToolContract, RegistrationStatus } from './types.js';
 import type { JsonSchema } from './types.js';
-import { SimpleWebMCPError, ConfigurationError } from './errors.js';
+import { SimpleWebMCPError, ConfigurationError, NotSupportedError } from './errors.js';
 import { toSnakeCase, getFunctionName, warnNoDescription, isWebMCPSupported } from './internal/utils.js';
 import { inferRuntime } from './internal/inferRuntime.js';
 import { buildFinalInputSchema, normalizeOutputSchema } from './internal/schema.js';
@@ -120,10 +120,12 @@ export function webmcp<F extends (...args: any) => any>(fn: F, options?: WebMCPO
   Object.defineProperty(toolWrapper, 'status', {
     get() { return status; },
     enumerable: true,
+    configurable: true,
   });
   Object.defineProperty(toolWrapper, 'registration', {
     get() { return registrationPromise; },
     enumerable: true,
+    configurable: true,
   });
 
   toolWrapper.isRegistered = () => status === 'registered';
@@ -136,6 +138,12 @@ export function webmcp<F extends (...args: any) => any>(fn: F, options?: WebMCPO
     if (enabled === false) {
       // inert
       return () => {};
+    }
+    if (!isWebMCPSupported()) {
+      status = 'unsupported';
+      return () => {
+        status = 'unregistered';
+      };
     }
     status = 'registering';
     const controller = new AbortController();
@@ -170,6 +178,8 @@ export function webmcp<F extends (...args: any) => any>(fn: F, options?: WebMCPO
       registrationPromise = Promise.resolve();
       if (controller.signal.aborted) {
         status = 'unregistered';
+      } else if (!isWebMCPSupported()) {
+        status = 'unsupported';
       } else {
         status = 'registered';
       }
@@ -179,8 +189,12 @@ export function webmcp<F extends (...args: any) => any>(fn: F, options?: WebMCPO
         activeController = null;
         unregisterFn = null;
       };
-    } catch (err) {
-      status = 'error';
+    } catch (err: any) {
+      if (err instanceof NotSupportedError || err?.code === 'NOT_SUPPORTED' || err?.name === 'NotSupportedError') {
+        status = 'unsupported';
+      } else {
+        status = 'error';
+      }
       registrationPromise = Promise.reject(err);
       // Re-throw as typed
       if (err instanceof SimpleWebMCPError) throw err;

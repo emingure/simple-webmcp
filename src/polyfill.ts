@@ -1,13 +1,21 @@
 /**
- * simple-webmcp/polyfill — adapter entry.
- * We do not hard-depend on a specific shim; we attach a minimal no-op polyfill that
- * allows `registry.register` to succeed in non-Chrome environments for dev/testing.
- * In production Chrome with native WebMCP, this is a no-op (detected via native presence).
+ * simple-webmcp/polyfill — dev/testing shim (NOT a WebMCP interoperability polyfill).
  *
- * For full polyfill fidelity, user can `npm i @mcp-b/global` and `import '@mcp-b/global/polyfill'`
- * before importing simple-webmcp; our adapter detects `document.modelContext` already present and skips.
+ * This is an in-memory registry for tests, Storybook, and local dev without Chrome.
+ * It implements `registerTool`/`listTools`/`invokeTool` but not full MCP transport.
  *
- * This thin adapter exists to shield users from spec churn (per review §17).
+ * For real cross-browser WebMCP (Firefox/Safari), use the dedicated
+ * `@mcp-b/webmcp-polyfill` (https://www.npmjs.com/package/@mcp-b/webmcp-polyfill)
+ * — ~6k weekly downloads, broader MCP ecosystem. Example:
+ *   `npm i @mcp-b/webmcp-polyfill && import '@mcp-b/webmcp-polyfill'`
+ *
+ * In production Chrome with native `document.modelContext`, this is a no-op
+ * (detected via native presence). Prefer the real polyfill for production
+ * cross-browser, and this shim for testing.
+ *
+ * New aliases (preferred for clarity): `simple-webmcp/dev-polyfill` and
+ * `simple-webmcp/testing` — same module, clearer intent. `simple-webmcp/polyfill`
+ * is kept for backward compat but will be documented as dev shim.
  */
 
 export type PolyfillOptions = {

@@ -6,24 +6,33 @@ import { webmcp } from 'simple-webmcp';
 import { useWebMCP, Scope } from 'simple-webmcp/react';
 ```
 
-## `useWebMCP`
+## `useWebMCP` — now optional wrapper
+
+`useWebMCP` accepts **either** a wrapped `WebMCPTool` **or a raw function** — raw is auto-wrapped and visible for the component's lifetime. This is the 1-line ergonomic requested:
 
 ```tsx
+// 1-line: wrap + register while mounted, still callable
 export function Page() {
-  const tool = webmcp(search, { description: 'Search' });
-  const { supported, registered, error, status } = useWebMCP(tool);
-  // supported: has document.modelContext?
-  // registered: now in registry?
-  // status: 'unregistered'|'registering'|'registered'|'error'|'unsupported'
+  const searchTool = useWebMCP(search, { description: 'Search customers' });
+  // searchTool({query:'alice'}) still works
+  // searchTool.registered, searchTool.status also available
   return null;
 }
+
+// equivalent verbose (still supported):
+const tool = webmcp(search, { description: 'Search' });
+const { supported, registered, error, status } = useWebMCP(tool);
+
+// alias — same as useWebMCP(fn, opts)
+import { useTool } from 'simple-webmcp/react';
+const tool2 = useTool(search, { description: 'Search' });
 ```
 
 * Registers via `registry.register(contract, {signal})` (async `Promise<void>` per WebMCP spec).
 * Unregisters on unmount via `AbortSignal` — mirrors spec.
 * Deduped for StrictMode double-mount.
 * `enabled:false` → inert.
-* Plain `fn` (not `webmcp(fn)`) warns and sets `error`.
+* For `useWebMCP(tool)` (already wrapped) returns `{supported,registered,error,status}` for backward compat; for `useWebMCP(fn, opts)` returns `WebMCPTool & status` so you get callable + state in one.
 
 ## `Scope`
 

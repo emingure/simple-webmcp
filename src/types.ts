@@ -125,7 +125,7 @@ export type WebMCPTool<F extends (...args: any) => any> = F & {
   readonly __outputStandardSchema?: StandardSchemaV1;
 };
 
-export type RegistrationStatus = 'unregistered' | 'registering' | 'registered' | 'unregistering' | 'error';
+export type RegistrationStatus = 'unregistered' | 'registering' | 'registered' | 'unregistering' | 'error' | 'unsupported';
 
 // Global registry shape for modelContext
 // We intentionally use `any` for document to avoid lib.dom hard dep.

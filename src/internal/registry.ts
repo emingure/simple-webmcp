@@ -15,13 +15,23 @@ type Entry = {
   status: RegistrationStatus;
   promise: Promise<void> | null;
   unregister: () => void;
+  contract?: ToolContract;
+  execute?: (args: unknown, ctx?: unknown) => Promise<any>;
 };
 
 class Registry {
   private entries = new Map<string, Entry>();
-  // expose for devtools/tests
-  list(): Array<{ name: string; status: RegistrationStatus }> {
-    return Array.from(this.entries.values()).map((e) => ({ name: e.name, status: e.status }));
+  // expose for devtools/tests — now includes contract for inspect
+  list(): Array<{ name: string; status: RegistrationStatus; contract?: ToolContract }> {
+    return Array.from(this.entries.values()).map((e) => ({ name: e.name, status: e.status, contract: e.contract }));
+  }
+
+  get(name: string): Entry | undefined {
+    return this.entries.get(name);
+  }
+
+  getContract(name: string): ToolContract | undefined {
+    return this.entries.get(name)?.contract;
   }
 
   clear() {
@@ -51,35 +61,11 @@ class Registry {
     }
 
     if (!isWebMCPSupported()) {
-      // Graceful no-op — still track as registered for polyfilled later? but error for now
-      // For tests, mock document.modelContext; if missing, do no-op but resolve.
-      // We don't throw NotSupportedError unless strict? For 0.1, just no-op and return no-op unregister.
-      // Caller can check isWebMCPSupported separately.
-      const controller = new AbortController();
-      const entry: Entry = {
-        name,
-        controller,
-        status: 'registered',
-        promise: Promise.resolve(),
-        unregister: () => {
-          try { controller.abort(); } catch {}
-          this.entries.delete(name);
-        },
-      };
-      // Wire external abort
-      if (opts?.signal) {
-        if (opts.signal.aborted) {
-          controller.abort();
-          this.entries.delete(name);
-          return () => {};
-        }
-        opts.signal.addEventListener('abort', () => {
-          try { controller.abort(); } catch {}
-          this.entries.delete(name);
-        }, { once: true });
-      }
-      this.entries.set(name, entry);
-      return entry.unregister;
+      // Do not claim success. `supported` and `registered` must be mutually exclusive.
+      // Return a no-op unregister; caller should check `isWebMCPSupported()` or
+      // `tool.status === 'unsupported'` instead of assuming `registered`.
+      if (opts?.signal?.aborted) return () => {};
+      return () => {};
     }
 
     const modelContext = getModelContext();
@@ -119,6 +105,8 @@ class Registry {
           this.entries.delete(name);
         }
       },
+      contract,
+      execute: opts?.execute,
     };
     this.entries.set(name, entry);
 
@@ -174,7 +162,13 @@ class Registry {
   }
 }
 
-export const registry = new Registry();
+const REGISTRY_KEY = '__simpleWebmcpRegistry' as const;
+const globalAny = globalThis as any;
+export const registry: Registry =
+  (globalAny[REGISTRY_KEY] as Registry) ?? new Registry();
+if (!globalAny[REGISTRY_KEY]) {
+  globalAny[REGISTRY_KEY] = registry;
+}
 
 // Export wrap helper for external tests
 export function getRegistry() {

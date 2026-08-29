@@ -41,18 +41,23 @@ import { z } from 'zod';
 webmcp(fn, { fields: { query: z.string().describe('…'), limit: { type:'integer' } } });
 ```
 
-## Inference
+## Inference — best-effort at runtime, richer at build
+
+**Infer what JavaScript can know at runtime. Get richer TypeScript/JSDoc inference with the optional build plugin.**
 
 ### Runtime (0.1, `confidence:'low'`)
 
+Honest about limits — it does **not** recover `query: string` magically. `TypeScript` is erased at runtime.
+
 Parses `fn.toString()`:
 
-* `async ({query, limit=20})` → `{query: {required}, limit: {default:20, optional}}`
-* `fn(query)` → `{query: {type unknown}}` warns; need `fields`/`schema` or `strict:true` throws `ConfigurationError`.
+* `async ({query, limit=20})` → `{query: {required}, limit: {default:20, optional}}` (type `string`/`number` only from literal defaults)
+* `fn(query)` → `{query: {}}` — warn; need `fields`/`schema` or `strict:true` throws `ConfigurationError`.
+* `function search(query: string)` → at runtime still `{query:{}}` — add `fields: {query:{description}}` or `schema`.
 
-### Build (0.2, Vite/Webpack)
+### Build (0.2, Vite/Webpack) — optional
 
-`simple-webmcp/unplugin` (TS + JSDoc before erasure) → JSON Schema, same API, no code change. Validated pattern from `webmcp-nexus` (`ts-morph`). Not in 0.1 to avoid Turbopack coupling.
+`simple-webmcp/unplugin` (TS + JSDoc before erasure) → JSON Schema, same `webmcp(fn)` call, richer `inputSchema`, no code change. Validated pattern from `webmcp-nexus` (`ts-morph`). Not in 0.1 to avoid Turbopack coupling (Next 16 defaults to Turbopack).
 
 ## Annotations
 

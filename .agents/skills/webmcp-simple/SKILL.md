@@ -42,18 +42,27 @@ searchTool.unregister();
 await searchTool({ query: 'alice' });
 ```
 
-### 2. React — component lifecycle
+### 2. React — component lifecycle (1-line optional)
 
 ```tsx
 'use client';
-import { webmcp } from 'simple-webmcp';
 import { useWebMCP, Scope } from 'simple-webmcp/react';
+import { useTool } from 'simple-webmcp/react'; // alias
 
-const addToCartTool = webmcp(addToCart, { description: 'Add product to cart' });
-
+// 1-line: wrap + register while mounted — recommended
 export function ProductPage() {
-  // exposed only while component mounted — maps to AbortSignal
-  useWebMCP(addToCartTool);
+  const addToCartTool = useWebMCP(addToCart, { description: 'Add product to cart' });
+  // or: const tool = useTool(addToCart, { description: '...' });
+  // addToCartTool({productId:'p1', quantity:1}) still callable
+  // addToCartTool.registered, addToCartTool.status also available
+  return <div>...</div>;
+}
+
+// verbose 2-line still works:
+import { webmcp } from 'simple-webmcp';
+const addToCartTool2 = webmcp(addToCart, { description: 'Add product to cart' });
+export function ProductPage2() {
+  useWebMCP(addToCartTool2);
   return <div>...</div>;
 }
 
@@ -86,10 +95,16 @@ In all cases `schema` (whole) establishes contract; `fields` patches it (adds de
 
 ### 4. Polyfill (non-Chrome)
 
+For **production cross-browser** (Firefox/Safari), use the dedicated polyfill:
+
 ```ts
-// before importing tools — no-op in Chrome with native WebMCP
-import 'simple-webmcp/polyfill';
-// or programmatic: import { installPolyfill } from 'simple-webmcp/polyfill'; installPolyfill();
+import '@mcp-b/webmcp-polyfill'; // ~6k weekly, real transport
+```
+
+For **dev/testing** (Storybook, vitest, local without Chrome), `simple-webmcp` provides a thin in-memory shim (not full MCP):
+
+```ts
+import 'simple-webmcp/dev-polyfill'; // or 'simple-webmcp/testing' or legacy 'simple-webmcp/polyfill'
 ```
 
 ### 5. Global vs Scoped
@@ -105,11 +120,11 @@ webmcp.global(fn, { description: '…' }); // alias
 
 ## Progression Ladder (teach stepwise)
 
-1. **Beginner:** `webmcp(fn)` done.
-2. **Better desc:** `webmcp(fn, { description: '…' })`
+1. **Beginner:** `webmcp(fn)` done (vanilla) or `useWebMCP(fn,{description})` / `useTool(fn)` in React — 1 line.
+2. **Better desc:** `webmcp(fn, { description: '…' })` or `useTool(fn,{description})`
 3. **Field docs:** `webmcp(fn, { fields: { query: { description: '…' } } })`
 4. **Full control:** `webmcp(fn, { schema: z.object({…}) })`
-5. **Lifecycle:** `useWebMCP(tool)` / `<Scope tools>`
+5. **Lifecycle:** `useWebMCP(tool)` / `useTool(fn, opts)` / `<Scope tools>`
 
 ## Rules
 

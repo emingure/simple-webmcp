@@ -82,18 +82,57 @@ describe('react useWebMCP', () => {
     expect(registerTool).toHaveBeenCalledTimes(1);
   });
 
-  it('plain function warns and sets error', async () => {
-    mockModelContext();
+  it('raw function auto-wraps and registers (1-line)', async () => {
+    const { registerTool } = mockModelContext();
     function plain({ a }: { a: string }) {
+      return `hi ${a}`;
+    }
+
+    function RawComponent() {
+      // 1-line: useWebMCP as hook that wraps + registers
+      const tool = useWebMCP(plain as any, { description: 'd', name: 'plain_auto' });
+      // tool should be callable and carry status
+      return (
+        <div
+          data-testid="raw"
+          data-type={typeof tool}
+          data-callable={String(typeof tool === 'function')}
+          data-registered={String(tool.registered)}
+          data-name={(tool as any).tool?.name}
+          data-result={(tool as any)({ a: 'x' })}
+        />
+      );
+    }
+
+    const { container } = render(<RawComponent />);
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 10));
+    });
+    expect(registerTool).toHaveBeenCalledTimes(1);
+    expect(registerTool).toHaveBeenCalledWith(expect.objectContaining({ name: 'plain_auto' }), expect.any(Object));
+    const el = container.querySelector('[data-testid="raw"]');
+    expect(el?.getAttribute('data-type')).toBe('function');
+    expect(el?.getAttribute('data-callable')).toBe('true');
+    expect(el?.getAttribute('data-registered')).toBe('true');
+    expect(el?.getAttribute('data-name')).toBe('plain_auto');
+    expect(el?.getAttribute('data-result')).toBe('hi x');
+  });
+
+  it('useTool alias works same as useWebMCP', async () => {
+    const { registerTool } = mockModelContext();
+    const { useTool } = await import('../src/react/index.js');
+    function fn({ a }: { a: string }) {
       return a;
     }
-    const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const { container } = render(<TestComponent tool={plain as any} />);
+    function AliasComponent() {
+      const tool = (useTool as any)(fn as any, { description: 'd', name: 'alias_tool' });
+      return <div data-testid="alias" data-registered={String(tool.registered)} />;
+    }
+    const { container } = render(<AliasComponent />);
     await act(async () => {
-      await new Promise((r) => setTimeout(r, 0));
+      await new Promise((r) => setTimeout(r, 10));
     });
-    const el = container.querySelector('[data-testid="status"]');
-    expect(el?.getAttribute('data-error')).toContain('wrap fn with webmcp');
-    consoleWarn.mockRestore();
+    expect(registerTool).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('[data-testid="alias"]')?.getAttribute('data-registered')).toBe('true');
   });
 });

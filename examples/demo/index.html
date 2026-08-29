@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>simple-webmcp — Shopping Cart Demo + Inspect</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:860px;margin:32px auto;padding:0 20px;line-height:1.5;color:#111}
+    .card{border:1px solid #ddd;border-radius:12px;padding:20px;margin:16px 0;background:#fafafa}
+    .card.white{background:#fff}
+    button{padding:8px 14px;border-radius:8px;border:1px solid #111;background:#111;color:#fff;cursor:pointer;font-size:13px}
+    button.secondary{background:#fff;color:#111}
+    button:disabled{opacity:0.5;cursor:not-allowed}
+    pre{background:#111;color:#0f0;padding:12px;border-radius:8px;overflow:auto;font-size:12px;white-space:pre-wrap;word-break:break-word}
+    pre.light{background:#f6f8fa;color:#111;border:1px solid #e5e7eb}
+    .muted{color:#666;font-size:13px}
+    h1 span{color:#666;font-weight:400}
+    .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600}
+    .badge.ok{background:#dcfce7;color:#166534}
+    .badge.warn{background:#fee2e2;color:#991b1b}
+    .badge.info{background:#dbeafe;color:#1e40af}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    @media(max-width:700px){.grid{grid-template-columns:1fr}}
+    details{margin-top:8px}
+    summary{cursor:pointer;font-size:12px;color:#666}
+    textarea{width:100%;font-family:monospace;font-size:12px;padding:8px;border-radius:8px;border:1px solid #ddd;background:#fff}
+    .inspect-tool{border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin-bottom:12px;background:#fff}
+  </style>
+</head>
+<body>
+  <h1>simple-webmcp <span>— Shopping Cart Demo + Inspect</span></h1>
+  <p class="muted">Existing function <code>addToCart</code> made agent-ready with <code>webmcp(addToCart)</code>. Try the buttons, then use the <strong>Inspect</strong> panel to list/invoke tools — same API agents use (<code>document.modelContext</code>).</p>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+      <strong>WebMCP status</strong>
+      <span id="wmcpsupport" class="badge warn">checking…</span>
+    </div>
+    <div id="wmcpsupport-detail" class="muted" style="margin-top:6px"></div>
+    <div class="muted" style="margin-top:8px">Chrome canary: native `document.modelContext.registerTool` + `getTools`/`executeTool`. Other browsers: <code>simple-webmcp/dev-polyfill</code> (in-memory shim for dev, not full transport). For production cross-browser use <code>@mcp-b/webmcp-polyfill</code>.</div>
+  </div>
+
+  <div class="grid">
+    <div class="card white">
+      <h3>Products</h3>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:180px;border:1px solid #eee;border-radius:8px;padding:12px;background:#fff">
+          <strong>MacBook</strong><br>£1,299<br><button class="secondary" onclick="addToCartUI('macbook',1)">Add MacBook</button>
+        </div>
+        <div style="flex:1;min-width:180px;border:1px solid #eee;border-radius:8px;padding:12px;background:#fff">
+          <strong>Keyboard</strong> — £99<br><button onclick="addToCartUI('keyboard',1)">Add Keyboard</button>
+        </div>
+      </div>
+      <p class="muted">Cart: <span id="cartcount">0 items</span></p>
+      <pre id="cart">[]</pre>
+    </div>
+
+    <div class="card white">
+      <h3>How it's built — one function</h3>
+      <pre class="light">import { webmcp } from 'simple-webmcp';
+const addToCartTool = webmcp(addToCart, {
+  description: 'Add product to cart'
+});
+// still callable:
+await addToCartTool({productId:'p1', quantity:1});
+// vanilla: await tool.register()
+// React: const tool = useWebMCP(addToCart, {description})
+// useTool alias also: useTool(addToCart, {...})</pre>
+      <div class="muted">Without: manual <code>registerTool({name,inputSchema,execute})</code> + <code>AbortSignal</code>.<br><strong>Same function. One line.</strong></div>
+      <details><summary>Show raw <code>registerTool</code> vs <code>webmcp</code></summary>
+        <pre class="light">// raw
+document.modelContext.registerTool({
+  name: 'add_to_cart',
+  description: 'Add…',
+  inputSchema: {type:'object', properties:{productId:{type:'string'}, quantity:{type:'number'}}, required:['productId','quantity']},
+  execute: ({productId,quantity})=>addToCart({productId,quantity})
+}, {signal})
+// with simple-webmcp
+webmcp(addToCart, {description:'Add…'}) // inferred inputSchema + fields patch</pre>
+      </details>
+    </div>
+  </div>
+
+  <div class="card white" id="inspect">
+    <h3 style="margin-top:0">🔍 Inspect — tools on this page</h3>
+    <div class="muted" style="margin-bottom:12px">Lists <code>simple-webmcp/inspect</code> (<code>registry.list()</code> + <code>document.modelContext.getTools()</code>) and lets you invoke. Works with native Chrome or <code>dev-polyfill</code> shim.</div>
+    <div id="inspect-list"></div>
+    <div id="inspect-empty" class="muted" style="display:none;padding:24px;text-align:center;border:1px dashed #ddd;border-radius:8px;background:#fafafa">No tools registered yet. The demo auto-registers <code>add_to_cart</code> on load — check console.</div>
+    <div class="muted" style="margin-top:8px;font-size:11px">API: <code>import { listTools, invokeTool, onToolsChanged } from 'simple-webmcp/inspect'</code> · <code>import { Inspector } from 'simple-webmcp/devtools'</code> for React.</div>
+  </div>
+
+  <div class="card">
+    <h3>Log</h3>
+    <pre id="log"></pre>
+    <button onclick="document.getElementById('log').textContent=''">Clear log</button>
+  </div>
+
+  <script type="module">
+    const cart = [];
+    async function addToCart({ productId, quantity }) {
+      cart.push({ productId, quantity, at: new Date().toISOString() });
+      return { ok: true, cart: [...cart] };
+    }
+
+    // Expose for console
+    window.cart = cart;
+    window.addToCart = addToCart;
+
+    // --- WebMCP wiring via simple-webmcp (tries native, falls back to dev-polyfill) ---
+    let tool = null;
+    let inspect = null;
+    async function loadWebMCP() {
+      // Try local dist first (for `npm run docs:dev` / local serve), fallback to CDN for GitHub Pages
+      const localBase = '../../dist';
+      const cdnBase = 'https://unpkg.com/simple-webmcp@latest/dist';
+      // dev-polyfill
+      try { await import(`${localBase}/dev-polyfill.js`); } catch { try { await import(`${cdnBase}/dev-polyfill.js`); } catch {} }
+      try {
+        const mod = await import(`${localBase}/index.js`);
+        const inspectMod = await import(`${localBase}/inspect.js`);
+        return { webmcp: mod.webmcp, inspect: inspectMod };
+      } catch (e) {
+        console.log('[demo] local dist not found, trying CDN', String(e).slice(0,120));
+        const mod = await import(`${cdnBase}/index.js`);
+        const inspectMod = await import(`${cdnBase}/inspect.js`);
+        // also ensure CDN dev-polyfill loaded
+        try { await import(`${cdnBase}/dev-polyfill.js`); } catch {}
+        return { webmcp: mod.webmcp, inspect: inspectMod };
+      }
+    }
+    async function setupWebMCP() {
+      const supportEl = document.getElementById('wmcpsupport');
+      const detailEl = document.getElementById('wmcpsupport-detail');
+      try {
+        const loaded = await loadWebMCP();
+        const { webmcp } = loaded;
+        inspect = loaded.inspect;
+        tool = webmcp(addToCart, {
+          description: 'Add product to shopping cart',
+          fields: {
+            productId: { description: 'Product ID (macbook, keyboard)' },
+            quantity: { type: 'integer', minimum: 1, description: 'Quantity' }
+          },
+          annotations: { readOnlyHint: false }
+        });
+        // Expose for inspect panel and console
+        window.addToCartTool = tool;
+        console.log('[demo] webmcp tool', tool.tool);
+
+        // Register — will be 'unsupported' in non-Chrome without shim, but dev-polyfill makes it 'registered'
+        const unregister = await tool.register();
+        window._demoUnregister = unregister;
+        console.log('[demo] tool.register() ->', tool.status, 'supported:', inspect.isSupported?.() ?? 'unknown');
+
+        const supported = inspect.isSupported ? inspect.isSupported() : !!(document.modelContext && document.modelContext.registerTool);
+        supportEl.textContent = supported ? (document.modelContext?._isPolyfill ? 'dev shim (registered)' : 'native WebMCP') : 'unsupported';
+        supportEl.className = 'badge ' + (supported ? (document.modelContext?._isPolyfill ? 'info' : 'ok') : 'warn');
+        detailEl.textContent = `tool "${tool.tool.name}" status: ${tool.status} — isSupported: ${supported} — try Inspect panel below or Chrome inspector.`;
+
+        // Also log registry
+        if (inspect.listTools) {
+          console.log('[demo] inspect listTools()', inspect.listTools());
+        }
+        renderInspect();
+        // Subscribe to tool changes
+        if (inspect.onToolsChanged) {
+          inspect.onToolsChanged(() => renderInspect());
+        }
+      } catch (e) {
+        console.warn('[demo] WebMCP setup failed', e);
+        supportEl.textContent = 'error';
+        supportEl.className = 'badge warn';
+        detailEl.textContent = String(e?.message ?? e);
+        renderInspect(true);
+      }
+    }
+
+    // --- UI helpers ---
+    window.addToCartUI = async (productId, quantity) => {
+      const res = await addToCart({ productId, quantity });
+      document.getElementById('cart').textContent = JSON.stringify(res.cart, null, 2);
+      document.getElementById('cartcount').textContent = res.cart.length + ' items';
+      const log = document.getElementById('log');
+      log.textContent += `addToCart({ productId: '${productId}', quantity: ${quantity} }) → ${JSON.stringify(res)}\n`;
+      // Also log via WebMCP invoke path for demo parity
+      try {
+        if (inspect && tool) {
+          const viaInspect = await inspect.invokeTool(tool.tool.name, { productId, quantity });
+          log.textContent += `  ↳ via inspect.invokeTool('${tool.tool.name}', ...) → ${JSON.stringify(viaInspect).slice(0,200)}\n`;
+        }
+      } catch {}
+      renderInspect();
+    };
+
+    function renderInspect(forceEmpty) {
+      const listEl = document.getElementById('inspect-list');
+      const emptyEl = document.getElementById('inspect-empty');
+      if (!inspect || !listEl) return;
+      const tools = forceEmpty ? [] : (inspect.listTools ? inspect.listTools() : []);
+      if (tools.length === 0) {
+        listEl.innerHTML = '';
+        emptyEl.style.display = 'block';
+        return;
+      }
+      emptyEl.style.display = 'none';
+      listEl.innerHTML = tools.map(t => `
+        <div class="inspect-tool">
+          <div style="display:flex;justify-content:space-between;gap:12px">
+            <div>
+              <div style="font-weight:700;font-family:monospace;font-size:13px">${t.name}</div>
+              <div style="color:#555;font-size:13px">${t.description || '<span style="color:#999">No description</span>'}</div>
+              <div style="font-size:11px;color:#888;margin-top:4px">
+                <span class="badge ${t.registered ? 'ok' : 'warn'}">${t.status}</span>
+                <span style="margin-left:6px">${t.source || 'registry'}</span>
+              </div>
+            </div>
+          </div>
+          <details style="margin-top:8px"><summary>inputSchema</summary><pre class="light" style="max-height:160px;overflow:auto">${JSON.stringify(t.inputSchema, null, 2)}</pre></details>
+          <div style="margin-top:10px">
+            <div style="font-size:12px;font-weight:600">Invoke</div>
+            <textarea id="args-${t.name}" rows="3" placeholder='{"productId":"keyboard","quantity":1}' style="margin-top:4px">{"productId":"keyboard","quantity":1}</textarea>
+            <button onclick="invokeToolUI('${t.name}')">Invoke ${t.name}</button>
+            <pre id="res-${t.name}" style="display:none;margin-top:8px"></pre>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    window.invokeToolUI = async (name) => {
+      const textarea = document.getElementById(`args-${name}`);
+      const resEl = document.getElementById(`res-${name}`);
+      const log = document.getElementById('log');
+      try {
+        const args = textarea.value.trim() ? JSON.parse(textarea.value) : {};
+        resEl.style.display = 'block';
+        resEl.textContent = 'Invoking…';
+        resEl.style.background = '#111';
+        resEl.style.color = '#0f0';
+        const res = await inspect.invokeTool(name, args);
+        resEl.textContent = typeof res === 'string' ? res : JSON.stringify(res, null, 2);
+        resEl.style.background = '#f0fdf4';
+        resEl.style.color = '#065f46';
+        // Update cart view if this was add_to_cart
+        if (res && res.cart) {
+          document.getElementById('cart').textContent = JSON.stringify(res.cart, null, 2);
+          document.getElementById('cartcount').textContent = res.cart.length + ' items';
+        } else if (res && res.content && res.content[0] && res.content[0].text) {
+          try {
+            const parsed = JSON.parse(res.content[0].text);
+            if (parsed && parsed.cart) {
+              document.getElementById('cart').textContent = JSON.stringify(parsed.cart, null, 2);
+              document.getElementById('cartcount').textContent = parsed.cart.length + ' items';
+            }
+          } catch {}
+        }
+        log.textContent += `invokeTool('${name}', ${textarea.value}) → ${JSON.stringify(res).slice(0,300)}\n`;
+      } catch (e) {
+        resEl.style.display = 'block';
+        resEl.textContent = 'Error: ' + (e?.message ?? String(e));
+        resEl.style.background = '#fef2f2';
+        resEl.style.color = '#b91c1c';
+        log.textContent += `invokeTool('${name}') error: ${e?.message ?? e}\n`;
+      }
+    };
+
+    // Auto-setup
+    setupWebMCP();
+    // Fallback render if imports fail (e.g., file:// without server)
+    setTimeout(() => { if (!inspect) renderInspect(true); }, 800);
+    console.log('Demo ready — same function, two interfaces: human button and agent tool. Inspect panel below uses simple-webmcp/inspect.');
+  </script>
+</body>
+</html>

@@ -2,11 +2,13 @@ import { defineConfig } from 'vitepress';
 
 export default defineConfig({
   title: 'simple-webmcp',
-  description: 'Turn any JS/TS function into a WebMCP tool — function-first, lean, typed.',
+  description: 'Make your existing functions agent-ready — webmcp(fn) stays callable. Function-first, typed, lean.',
   base: '/simple-webmcp/',
+  ignoreDeadLinks: true,
   themeConfig: {
     nav: [
       { text: 'Guide', link: '/getting-started' },
+      { text: 'Demo', link: '/demo' },
       { text: 'API', link: '/api/' },
       { text: 'Examples', link: '/examples/' },
     ],
@@ -18,6 +20,7 @@ export default defineConfig({
           { text: 'Getting Started', link: '/getting-started' },
           { text: 'Schema & Inference', link: '/guide/schema' },
           { text: 'React', link: '/guide/react' },
+          { text: 'Inspect', link: '/guide/inspect' },
           { text: 'Zod & StandardSchema', link: '/guide/zod' },
           { text: 'Polyfill', link: '/guide/polyfill' },
         ],
@@ -27,6 +30,7 @@ export default defineConfig({
         items: [
           { text: 'Core — webmcp()', link: '/api/' },
           { text: 'React — useWebMCP / Scope', link: '/api/react' },
+          { text: 'Inspect', link: '/api/inspect' },
           { text: 'Zod Adapter', link: '/api/zod' },
           { text: 'Errors & Registry', link: '/api/errors' },
         ],
@@ -37,6 +41,7 @@ export default defineConfig({
           { text: 'Vanilla JS', link: '/examples/vanilla' },
           { text: 'React', link: '/examples/react' },
           { text: 'Zod', link: '/examples/zod' },
+          { text: 'Demo — Shopping Cart', link: '/demo' },
         ],
       },
     ],

@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: simple-webmcp
-  text: Turn any function into a WebMCP tool
-  tagline: One line. Still callable. Typed, lean, framework-agnostic.
+  text: Make your existing functions agent-ready
+  tagline: Wrap a JS/TS function with webmcp(fn). Keep your API — add a WebMCP capability on top. One function. Two interfaces.
   image:
     src: /logo.svg
     alt: simple-webmcp
@@ -13,31 +13,34 @@ hero:
       text: Get Started
       link: /getting-started
     - theme: alt
+      text: Try Live Demo
+      link: /demo/
+    - theme: alt
       text: View on GitHub
       link: https://github.com/emingure/simple-webmcp
 
 features:
-  - icon: ⚡
+  - icon: 🎯
     title: Function-first
-    details: Wrap existing functions — no rewrite. <code>webmcp(fn)</code> stays callable, also exposes <code>tool.register()</code>.
+    details: Existing function stays callable. <code>await search({query})</code> and agent <code>search({query})</code> — same capability.
   - icon: 🧩
-    title: Fields as patch
-    details: Add descriptions/min/max via <code>fields</code> without rewriting whole JSON Schema. Whole <code>schema</code> wins.
+    title: Enhance, don't rewrite
+    details: <code>fields</code> patches inferred schema — add descriptions/min/max without rewriting JSON Schema.
   - icon: 🔌
-    title: React lifecycle
-    details: <code>useWebMCP(tool)</code> + <code>&lt;Scope&gt;</code> map to <code>AbortSignal</code> — mounted = exposed.
+    title: Framework-agnostic core
+    details: Core has no React dep. React adapter included — <code>useWebMCP(fn)</code> maps to <code>AbortSignal</code>.
   - icon: 🪶
-    title: Lean core
-    details: Core ESM 6.26KB gz, no React dep, Zod opt-in via <code>simple-webmcp/zod</code>.
+    title: Lean & stable
+    details: Core 6.26KB gz. Stay on <code>webmcp(fn)</code> while WebMCP evolves underneath.
   - icon: 🔒
-    title: Typed errors
-    details: <code>NotSupportedError / NotAllowedError / RegistrationError</code> with <code>code</code> + <code>cause</code>.
+    title: Honest inference
+    details: Runtime knows param names + defaults (low-confidence). Richer TS/JSDoc via optional build plugin.
   - icon: 🤖
     title: Agent skill
-    details: Ships <code>.agents/skills/webmcp-simple</code> for OpenCode / Claude auto-discovery.
+    details: Ships <code>.agents/skills/webmcp-simple</code> — agent becomes distribution.
 ---
 
-## One-line demo
+## One function. Two interfaces.
 
 ```ts
 import { webmcp } from 'simple-webmcp';
@@ -46,19 +49,35 @@ async function searchCustomers({ query, limit = 20 }: { query: string; limit?: n
   return customers.filter(c => c.name.includes(query)).slice(0, limit);
 }
 
-export const searchTool = webmcp(searchCustomers, {
-  description: 'Search customers in current account',
-  fields: { query: { description: 'Name, email, or ID' } },
-});
-
-// stays callable
-await searchTool({ query: 'alice' });
-// or agent-callable
-await searchTool.register();
-// React: useWebMCP(searchTool) while mounted
+const search = webmcp(searchCustomers);
 ```
 
-Works with plain JS, TS, React, Vite. Polyfill for non-Chrome via `import 'simple-webmcp/polyfill'`. Zod via `import 'simple-webmcp/zod'`.
+Human:
+
+```ts
+await search({ query: 'alice' });
+```
+
+Agent (when mounted):
+
+```ts
+import { useWebMCP } from 'simple-webmcp/react';
+function Page() {
+  const tool = useWebMCP(search, { description: 'Search customers' });
+  return <UI />;
+}
+```
+
+Customize only what you need:
+
+```ts
+const search2 = webmcp(searchCustomers, {
+  description: 'Search customers by name or email',
+  fields: { query: { description: 'Name, email, or ID' } }
+});
+```
+
+Progressive adoption: `webmcp(fn)` → add `description` → `fields` → `schema` (Zod) → build-time inference. For real cross-browser WebMCP use `@mcp-b/webmcp-polyfill`; `simple-webmcp/dev-polyfill` is for tests.
 
 <div class="tip custom-block" style="padding-top: 8px">
 

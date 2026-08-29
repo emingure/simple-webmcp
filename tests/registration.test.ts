@@ -95,17 +95,34 @@ describe('registration', () => {
     expect(registry.list()).toHaveLength(0);
   });
 
-  it('polyfill path when no modelContext — register still resolves without throw (graceful)', async () => {
-    // delete document
+  it('polyfill path when no modelContext — remains unsupported, not registered', async () => {
+    // delete document — no native WebMCP
     delete (globalThis as any).document;
     const fn = ({ a }: { a: string }) => a;
     const tool = webmcp(fn as any, { name: 'poly_tool2', description: 'd' });
-    // Should not throw, instead no-op registered
+    // Should not throw, but also not claim registered — status is unsupported
     const unregister = await tool.register();
-    expect(tool.status).toBe('registered');
+    expect(tool.status).toBe('unsupported');
+    expect(tool.isRegistered()).toBe(false);
     expect(typeof unregister).toBe('function');
     unregister();
     expect(tool.status).toBe('unregistered');
+  });
+
+  it('supported and registered are mutually exclusive', async () => {
+    const { registerTool } = mockModelContext();
+    const fn = ({ a }: { a: string }) => a;
+    const tool = webmcp(fn as any, { name: 'mutual_tool', description: 'd' });
+    await tool.register();
+    expect(tool.status).toBe('registered');
+    // simulate unsupported by clearing document and trying new tool
+    delete (globalThis as any).document;
+    const tool2 = webmcp(({ b }: { b: string }) => b, { name: 'mutual_tool2', description: 'd' });
+    await tool2.register();
+    expect(tool2.status).toBe('unsupported');
+    expect(tool2.isRegistered()).toBe(false);
+    // restore for other tests
+    mockModelContext();
   });
 
   it('wrapExecute normalizes string results and errors', async () => {

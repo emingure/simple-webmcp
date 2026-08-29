@@ -43,23 +43,34 @@ await tool.register(); // => document.modelContext.registerTool(...)
 tool.unregister();
 ```
 
-### React — page / layout scope
+### React — page / layout scope (1-line optional wrapper)
 
 ```tsx
 'use client';
-import { webmcp } from 'simple-webmcp';
 import { useWebMCP, Scope } from 'simple-webmcp/react';
+// or useTool alias
+import { useTool } from 'simple-webmcp/react';
 
-const searchTool = webmcp(searchCustomers, { description: 'Search customers' });
-
+// 1-line: define + wrap + register while mounted (recommended)
 export function Page() {
-  useWebMCP(searchTool); // mounted = exposed (AbortSignal)
+  const searchTool = useWebMCP(searchCustomers, { description: 'Search customers' });
+  // also: const searchTool = useTool(searchCustomers, { description: '...' });
+  // searchTool({query:'a'}) still callable
+  return <SearchUI />;
+}
+
+// verbose 2-line still works:
+import { webmcp } from 'simple-webmcp';
+const searchTool2 = webmcp(searchCustomers, { description: 'Search' });
+export function Page2() {
+  useWebMCP(searchTool2); // mounted = exposed (AbortSignal)
   return <SearchUI />;
 }
 
 // route-level via layout (Next.js app/layout.tsx naturally gives route scope)
 export function Layout({ children }: { children: React.ReactNode }) {
-  return <Scope tools={[searchTool]}>{children}</Scope>;
+  const t = useWebMCP(searchCustomers, { description: 'Search' }); // or pre-wrapped tool
+  return <Scope tools={[t]}>{children}</Scope>;
 }
 ```
 
