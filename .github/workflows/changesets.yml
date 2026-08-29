@@ -21,7 +21,12 @@ concurrency:
 
 jobs:
   changesets:
-    if: github.event_name != 'pull_request' || github.repository == 'emingure/simple-webmcp'
+    # Two release paths:
+    # - Path A (Changesets): feature PR has `.changeset/*.md` → bot creates Version PR → merge → publish via `changeset publish` here.
+    # - Path B (manual): `npm version minor` → tag `v*` → `release.yml` publishes. Skip this job for that manual bump to avoid double publish.
+    if: >-
+      (github.event_name != 'pull_request' || github.repository == 'emingure/simple-webmcp') &&
+      (!startsWith(github.event.head_commit.message, 'chore(release):') || contains(github.event.head_commit.message, 'version packages'))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,8 +45,8 @@ jobs:
         id: changesets
         uses: changesets/action@v1
         with:
-          # Creates a PR that bumps version + CHANGELOG from .changeset/*.md
-          # Merging that PR triggers `publish: npm run release` (changeset publish)
+          # Path A: creates Version PR; merging it runs `publish` (npm + GitHub Release) here.
+          # Path B (manual tag) is handled by `release.yml`, not here — condition above skips that commit.
           publish: npm run release
           version: npm run changeset:version
           commit: 'chore(release): version packages'
