@@ -30,7 +30,7 @@ function CustomersPage() {
 }
 ```
 
-**Framework-agnostic core. React adapter included. More adapters coming.** Works with vanilla JS, TypeScript, Vite — Next.js `server()` is experimental until the `fixtures/next-app` spike proves the Server Action bridge.
+**Framework-agnostic core. React adapter included.** Works with vanilla JS, TypeScript, Vite — Next.js support remains experimental until proven.
 
 > **One function. Two interfaces.** Human code `search(input)` and agent `search(input)` — same capability.
 >
@@ -178,9 +178,9 @@ webmcp(fn, { fields: { query: z.string().describe('Name') } });
 
 **Infer what JavaScript can know at runtime. Get richer TypeScript/JSDoc inference with the optional build plugin.**
 
-*Runtime (0.1)* — best-effort, `confidence:'low'`: parameter names, defaults, destructured keys (`{query, limit=20}` → `query` required, `limit` optional `default:20`), some primitives from literal defaults. `function search(query: string)` alone becomes `{properties:{query:{}}}` — we warn and need `fields`/`schema` or `strict:true` throws.
+*Runtime* — best-effort, `confidence:'low'`: parameter names, defaults, destructured keys (`{query, limit=20}` → `query` required, `limit` optional `default:20`), some primitives from literal defaults. `function search(query: string)` alone becomes `{properties:{query:{}}}` — we warn and need `fields`/`schema` or `strict:true` throws.
 
-*Build (0.2 `simple-webmcp/unplugin`)* — Vite/Webpack plugin reads TypeScript types + JSDoc before erasure (same approach `webmcp-nexus` validates with `ts-morph`). Same `webmcp(fn)` call, richer `inputSchema`, no code change.
+*Build* — optional `simple-webmcp/unplugin` (Vite/Webpack) reads TypeScript types + JSDoc before erasure. Same `webmcp(fn)` call, richer `inputSchema`, no code change.
 
 Progressive:
 
@@ -235,19 +235,14 @@ WebMCP today is `document.modelContext` (Chrome canary, origin trial). This pack
 
 ```bash
 npm run build      # tsup ESM+CJS+DTS (core 6.26KB gz, zod 1.40KB separate)
-npm test           # vitest jsdom — 43 tests
+npm test           # vitest jsdom — 47 tests
 npm run typecheck
 npm run docs:dev   # VitePress
 ```
 
 ## Versioning
 
-* **0.1** — `webmcp()` + `useWebMCP`/`useTool` + `Scope` + runtime best-effort fallback + dev shim + 43 tests (this release)
-* **0.2** — `simple-webmcp/unplugin` TS/JSDoc inference (Vite/Webpack)
-* **0.3** — `simple-webmcp/next` `webmcp.server()` — experimental, gated behind `fixtures/next-app` spike. Next 16 defaults to Turbopack, so no Webpack plugin in 0.1.
-* **0.4** — `webmcp.bind()`, DevTools, CLI — deferred
-
-`outputSchema` is kept internally but not marketed in 0.1 — current browser API does not enforce it like `usewebmcp` notes.
+Follows [Semantic Versioning](https://semver.org/). See [`CHANGELOG.md`](./CHANGELOG.md) for the current `0.2.0` notes and [`RELEASING.md`](./RELEASING.md) for the release process. No future roadmap is promised here — track GitHub issues/discussions for what's next.
 
 ## Skills (Agent)
 
