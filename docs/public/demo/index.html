@@ -97,14 +97,34 @@ webmcp(addToCart, {description:'Add…'}) // inferred inputSchema + fields patch
 
   <script type="module">
     const cart = [];
+    function renderCart() {
+      const cartEl = document.getElementById('cart');
+      const countEl = document.getElementById('cartcount');
+      if (cartEl) cartEl.textContent = JSON.stringify(cart, null, 2);
+      if (countEl) countEl.textContent = cart.length + ' items';
+    }
     async function addToCart({ productId, quantity }) {
       cart.push({ productId, quantity, at: new Date().toISOString() });
+      renderCart();
+      // flash cart for agent-driven updates
+      const cartEl = document.getElementById('cart');
+      if (cartEl) {
+        cartEl.style.transition = 'background 0.3s';
+        cartEl.style.background = '#dcfce7';
+        setTimeout(() => { cartEl.style.background = '#111'; }, 400);
+      }
+      const log = document.getElementById('log');
+      if (log) {
+        const via = (new Error().stack || '').includes('invokeTool') ? ' (via WebMCP/agent)' : '';
+        console.log(`[addToCart] ${productId} x${quantity}${via}`, [...cart]);
+      }
       return { ok: true, cart: [...cart] };
     }
 
-    // Expose for console
+    // Expose for console + inspector
     window.cart = cart;
     window.addToCart = addToCart;
+    window.renderCart = renderCart;
 
     // --- WebMCP wiring via simple-webmcp (tries native, falls back to dev-polyfill) ---
     let tool = null;
@@ -178,17 +198,8 @@ webmcp(addToCart, {description:'Add…'}) // inferred inputSchema + fields patch
     // --- UI helpers ---
     window.addToCartUI = async (productId, quantity) => {
       const res = await addToCart({ productId, quantity });
-      document.getElementById('cart').textContent = JSON.stringify(res.cart, null, 2);
-      document.getElementById('cartcount').textContent = res.cart.length + ' items';
       const log = document.getElementById('log');
-      log.textContent += `addToCart({ productId: '${productId}', quantity: ${quantity} }) → ${JSON.stringify(res)}\n`;
-      // Also log via WebMCP invoke path for demo parity
-      try {
-        if (inspect && tool) {
-          const viaInspect = await inspect.invokeTool(tool.tool.name, { productId, quantity });
-          log.textContent += `  ↳ via inspect.invokeTool('${tool.tool.name}', ...) → ${JSON.stringify(viaInspect).slice(0,200)}\n`;
-        }
-      } catch {}
+      log.textContent += `addToCartUI({ productId: '${productId}', quantity: ${quantity} }) → ${JSON.stringify(res)}\n`;
       renderInspect();
     };
 
