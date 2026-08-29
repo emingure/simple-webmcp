@@ -1,6 +1,6 @@
 {
   "name": "simple-webmcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Turn any JS/TS function into a WebMCP tool — function-first, type-safe, lean. One line: webmcp(fn) still callable, auto-registers with React lifecycle or globally.",
   "type": "module",
   "keywords": [
