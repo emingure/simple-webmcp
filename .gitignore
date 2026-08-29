@@ -1,0 +1,17 @@
+node_modules
+dist
+coverage
+*.log
+.DS_Store
+.env
+.env.local
+.env.*.local
+.turbo
+docs/.vitepress/dist
+docs/.vitepress/cache
+.cache
+.vite
+*.tsbuildinfo
+.eslintcache
+.nyc_output
+*.tgz
