@@ -38,6 +38,24 @@ import { Scope } from 'simple-webmcp/react';
 <Scope tools={[a,b]} enabled>{children}</Scope>
 ```
 
+## `WebMCPProvider` — scoped hooks
+
+```tsx
+import { WebMCPProvider } from 'simple-webmcp/react'; // 'use client'
+
+<WebMCPProvider hooks={{ before:[addTenant], after:[redact] }}>
+  <Scope tools={[checkoutTool]}>{children}</Scope>
+</WebMCPProvider>
+```
+
+- `hooks` same shape as `webmcp(fn,{hooks})` — before/after/error/denied arrays.
+- Nesting merges additively (`[...parent.before, ...own.before]`).
+- Merge order: `before: global→scoped→tool`, `after: tool→scoped→global`.
+- Scoped hooks stored as `__scopeHooks` on mount; if same tool appears under two providers, last wins — use separate instances for isolation.
+- Also exports `WebMCPHooksContext`, `useWebMCPHooksContext()`.
+
+See [API — Hooks](/api/hooks).
+
 Renders N `useWebMCP` registrars; mounted = exposed. Place in `app/layout.tsx` for route-level scope.
 
 ## Testing

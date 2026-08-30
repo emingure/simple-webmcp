@@ -152,6 +152,27 @@ Verbose 2-line still works: `const t = webmcp(fn); useWebMCP(t)`. Layout-level: 
 
 `register()` is `async` (`Promise<() => void>`) per current `webmcp-types`; hook maps to `AbortSignal` and dedupes StrictMode. `status` is `'unregistered'|'registering'|'registered'|'unsupported'|'error'` — `supported` and `registered` are mutually exclusive (unsupported never claims registered).
 
+### Hooks — before / after / error / denied (HITL)
+
+```ts
+const tool = webmcp(checkout, {
+  description: 'Checkout cart',
+  hooks: {
+    before: [async ({input}) => {
+      const ok = await confirm(`Checkout £${total}?`);
+      if (!ok) return { action: 'deny', message: 'User declined' };
+    }],
+    after:  [({output}) => ({ output: redact(output) })],
+    error:  [({error}) => console.warn(error)],
+    denied: [({reason}) => analytics.track('denied', {reason})],
+  }
+});
+webmcp.configure({ hooks:{ before:[trackInvocation], after:[trackResult] }});
+<WebMCPProvider hooks={{ before:[addTenant] }}><Scope tools={[tool]}>{children}</Scope></WebMCPProvider>
+```
+
+Hooks wrap only the agent `execute` path — `tool({input})` stays pure. Ordering: `before` `global→scoped→tool`, `after` `tool→scoped→global`. Direct + `console` + UI logs in the [demo](/demo) **Hooks & HITL** card. See [Guide — Hooks](https://emingure.github.io/simple-webmcp/guide/hooks) and [Analytics](https://emingure.github.io/simple-webmcp/guide/analytics) (PostHog, Mixpanel, GA4, Sentry, etc.).
+
 ## Customize only what you need
 
 ```ts
@@ -223,9 +244,11 @@ Start with one function.
 
 See `.agents/skills/webmcp-simple/references/api.md`.
 
-**Core:** `webmcp(fn, opts)` → `WebMCPTool` (callable + `tool`/`definition`/`register`/`status`), `webmcp.global`, `isWebMCPSupported()`, `registry.list()`. Errors: `NotSupportedError` (`unsupported` status, mutually exclusive with `registered`), `NotAllowedError`, `RegistrationError`, `ConfigurationError`.
+**Core:** `webmcp(fn, opts)` → `WebMCPTool` (callable + `tool`/`definition`/`register`/`status`), `webmcp.global`, `webmcp.configure({hooks})`, `isWebMCPSupported()`, `registry.list()`. Errors: `NotSupportedError` (`unsupported` status, mutually exclusive with `registered`), `NotAllowedError`, `RegistrationError`, `ConfigurationError`.
 
-**React:** `useWebMCP(fn, opts)` / `useWebMCP(tool)` → `WebMCPTool & status` / `status`, `useTool` alias, `<Scope tools>`.
+**Hooks:** `hooks:{ before:[], after:[], error:[], denied:[] }` on `webmcp(fn,{hooks})`, `webmcp.configure`, and `<WebMCPProvider hooks>`. See [Guide — Hooks](https://emingure.github.io/simple-webmcp/guide/hooks) and [Analytics](https://emingure.github.io/simple-webmcp/guide/analytics) for PostHog/Mixpanel/GA4/Sentry examples. Demo shows live hook log + HITL approval modal.
+
+**React:** `useWebMCP(fn, opts)` / `useWebMCP(tool)` → `WebMCPTool & status` / `status`, `useTool` alias, `<Scope tools>`, `<WebMCPProvider hooks>`.
 
 **Zod:** `import 'simple-webmcp/zod'` then `schema`/`fields` accept Zod/StandardSchema.
 

@@ -3,7 +3,7 @@
  * Framework-agnostic, no React dep here.
  */
 
-export { webmcp } from './webmcp.js';
+export { webmcp, configureWebMCP, getGlobalHooks, resetGlobalHooks } from './webmcp.js';
 export { default } from './webmcp.js';
 
 export type {
@@ -17,6 +17,21 @@ export type {
   StandardSchemaV1,
   RegistrationStatus,
 } from './types.js';
+
+export type {
+  WebMCPHooks,
+  BeforeHook,
+  AfterHook,
+  ErrorHook,
+  DeniedHook,
+  BeforeContext,
+  AfterContext,
+  ErrorContext,
+  DeniedContext,
+} from './hooks/types.js';
+
+export { mergeHooksOrdered, mergeHooks } from './hooks/config.js';
+export { createHookedExecute, genInvocationId } from './hooks/engine.js';
 
 export {
   SimpleWebMCPError,

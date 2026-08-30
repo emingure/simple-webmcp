@@ -20,6 +20,7 @@ type WebMCPOptions<F> = {
   scope?: 'global'|'scoped'|'manual'; global?: boolean;
   enabled?: boolean; // default true
   strict?: boolean; // throw on low-confidence runtime inference
+  hooks?: WebMCPHooks<F>; // before/after/error/denied — agent execute only
   // outputSchema?: kept internally, not in 0.1 marketing — browser does not enforce it
 };
 ```
@@ -42,6 +43,23 @@ type ToolContract = { name:string; description:string; inputSchema:JsonSchema; a
 **Framework-agnostic core. React adapter included. More adapters coming.** Hierarchy: `schema` whole → inferred (runtime best-effort 0.1 / `unplugin` 0.2) → `fields` patch → metadata.
 
 `register()` is async per WebMCP spec (`document.modelContext.registerTool`); hook maps to `AbortSignal`. `status:'unsupported'` is mutually exclusive with `'registered'` — check `isWebMCPSupported()`.
+
+## Hooks (global / scoped / tool)
+
+```ts
+webmcp(fn, {
+  hooks: {
+    before: [addTenant, requireApproval], // ({input, metadata})=>{input} | {action:'deny'}
+    after:  [redact],                     // ({input, output})=>{output}
+    error:  [trackError],                 // observational
+    denied: [trackDenied],                // runs after deny
+  }
+});
+webmcp.configure({ hooks:{ before:[trackInvocation] }}); // global
+// React scoped: <WebMCPProvider hooks={{before:[...]}}>
+```
+
+See [Guide — Hooks](/guide/hooks) and [API — Hooks](/api/hooks) for ordering (`global→scoped→tool` before, `tool→scoped→global` after) and HITL.
 
 ## Utilities
 

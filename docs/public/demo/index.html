@@ -43,11 +43,62 @@
     .dot.raw{background:#ef4444}
     .dot.simple{background:#22c55e}
     .tool-count{font-size:12px;background:#0f172a;color:#fff;padding:2px 8px;border-radius:999px}
+    /* Hooks log */
+    .hook-log{max-height:240px;overflow:auto;border:1px solid var(--border);border-radius:8px;background:#0f172a;color:#e2e8f0;padding:10px;font-family:monospace;font-size:11px;white-space:pre-wrap;word-break:break-word}
+    .hook-log .entry{padding:4px 0;border-bottom:1px solid #1e293b}
+    .hook-log .entry:last-child{border-bottom:none}
+    .hook-log .phase{font-weight:700}
+    .hook-log .phase.before{color:#7dd3fc}
+    .hook-log .phase.after{color:#86efac}
+    .hook-log .phase.error{color:#fca5a5}
+    .hook-log .phase.denied{color:#fde68a}
+    .hook-log .time{color:#64748b;font-size:10px}
+    /* HITL modal */
+    .modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;z-index:50}
+    .modal-overlay.open{display:flex}
+    .modal{background:#fff;border-radius:16px;padding:24px;max-width:420px;width:92%;box-shadow:0 20px 40px rgba(0,0,0,.2);border:1px solid var(--border)}
+    .modal h3{margin:0 0 8px 0}
+    .modal pre{margin:10px 0;background:#f8fafc;color:#0f172a;border:1px solid var(--border)}
+    .toggle{display:inline-flex;align-items:center;gap:8px;font-size:12px;cursor:pointer}
+    .toggle input{accent-color:var(--accent)}
   </style>
 </head>
 <body>
   <h1>simple-webmcp <span>— Full Store Demo</span></h1>
   <p class="muted">Six existing functions — no rewrite — made agent-ready with <code>webmcp(fn)</code>. Try as a human, then as an agent via <strong>Inspect</strong> or Chrome <strong>WebMCP Inspector</strong>. Same functions, two interfaces.</p>
+
+  <!-- Hook controls -->
+  <div class="card" style="border-style:dashed">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <strong>Hooks &amp; HITL <span class="badge info">live log</span></strong>
+      <label class="toggle"><input id="hitl-toggle" type="checkbox" checked /> Require approval for checkout (HITL)</label>
+    </div>
+    <p class="muted" style="margin:8px 0 10px 0;font-size:12px">All 6 tools run through <code>before → fn → after → error/denied</code>. Global hooks log every invocation; <code>checkout</code> has a tool-level <code>before</code> that asks for human approval. Open DevTools → console for <code>[webmcp:hook]</code> logs too.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      <button class="secondary small" onclick="clearHookLog()">Clear hook log</button>
+      <button class="secondary small" onclick="testDeny()">Test deny (checkout no approval)</button>
+      <button class="secondary small" onclick="testError()">Test error (searchProducts missing query)</button>
+    </div>
+    <div id="hook-log" class="hook-log"><div class="muted" style="color:#64748b;padding:6px">No invocations yet — use <em>Add to cart</em> or <em>Inspect → Invoke</em> to trigger hooks.</div></div>
+    <details style="margin-top:8px"><summary>How hooks are wired in this demo</summary><pre class="light" style="font-size:11px">import { webmcp } from 'simple-webmcp';
+import { webmcp } from 'simple-webmcp';
+
+// global — analytics for every tool
+webmcp.configure({
+  hooks: {
+    before: [trackInvocation, addTenant],
+    after:  [trackResult, redactResult],
+    error:  [trackError],
+    denied: [trackDenied],
+  }
+});
+
+// tool-level — HITL for checkout only
+const checkoutTool = webmcp(checkout, {
+  description: 'Checkout cart',
+  hooks: { before: [requireApproval], after: [addReceiptMetadata] }
+});</pre></details>
+  </div>
 
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
@@ -164,6 +215,20 @@ await addToCartTool({productId:'keyboard', quantity:1});
     <button onclick="document.getElementById('log').textContent=''" class="small secondary">Clear log</button>
   </div>
 
+  <!-- HITL approval modal -->
+  <div id="hitl-modal" class="modal-overlay" aria-hidden="true">
+    <div class="modal">
+      <h3>Approve tool call?</h3>
+      <p class="muted" style="font-size:13px;margin:4px 0 8px 0">An agent wants to run <code id="hitl-tool"></code>. Review input and approve.</p>
+      <pre id="hitl-input" class="light"></pre>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+        <button id="hitl-deny" class="secondary small">Deny</button>
+        <button id="hitl-approve" class="small">Approve</button>
+      </div>
+      <div class="muted" style="font-size:11px;margin-top:8px">This is a <code>before</code> hook returning <code>{action:'deny'}</code> — see console <code>[webmcp:hook]</code>.</div>
+    </div>
+  </div>
+
   <script>
     // ----- Catalog — real data (regular script so it runs via file://) --------
     window.PRODUCTS = {
@@ -176,6 +241,77 @@ await addToCartTool({productId:'keyboard', quantity:1});
     window.cart = [];
     const cart = window.cart;
     let lastQuery = '';
+
+    // ----- Hook log helpers (used by module hooks) -----
+    window.__hookLog = [];
+    window.logHook = function(phase, ctx, extra){
+      const entry = { time: new Date().toLocaleTimeString(), phase, tool: ctx.tool?.tool?.name || ctx.tool?.name || 'unknown', invocationId: ctx.invocationId?.slice(0,8), input: ctx.input, output: ctx.output, error: ctx.error, reason: ctx.reason, extra, metadata: {...(ctx.metadata||{})} };
+      window.__hookLog.unshift(entry);
+      if (window.__hookLog.length>40) window.__hookLog.pop();
+      console.log(`[webmcp:hook] ${phase}`, entry);
+      renderHookLog();
+    };
+    window.renderHookLog = function(){
+      const el = document.getElementById('hook-log');
+      if(!el) return;
+      if(window.__hookLog.length===0){
+        el.innerHTML = '<div class="muted" style="color:#64748b;padding:6px">No invocations yet — use <em>Add to cart</em> or <em>Inspect → Invoke</em> to trigger hooks.</div>';
+        return;
+      }
+      el.innerHTML = window.__hookLog.map(e=>{
+        const badge = e.phase==='before' ? 'before' : e.phase==='after' ? 'after' : e.phase==='error' ? 'error' : 'denied';
+        const detail = e.phase==='before' ? `input=${JSON.stringify(e.input).slice(0,120)}` : e.phase==='after' ? `output=${JSON.stringify(e.output).slice(0,120)}` : e.phase==='error' ? `error=${String(e.error?.message||e.error).slice(0,120)}` : `reason=${e.reason||''}`;
+        return `<div class="entry"><span class="phase ${badge}">${e.phase.toUpperCase()}</span> <span class="time">${e.time} · ${e.invocationId||''} · ${e.tool}</span><br/><span style="color:#cbd5e1">${detail}</span>${e.metadata && Object.keys(e.metadata).length ? `<br/><span style="color:#64748b">metadata=${JSON.stringify(e.metadata).slice(0,120)}</span>`:''}</div>`;
+      }).join('');
+    };
+    window.clearHookLog = function(){ window.__hookLog=[]; renderHookLog(); };
+    window.testDeny = function(){
+      // Trigger denied via checkout with HITL disabled toggle off? Simulate deny by invoking checkout and denying modal
+      // Directly invoke checkout via inspect if available
+      if(window.demoInspect && window.demoInspect.invokeTool){
+        window.demoInspect.invokeTool('checkout',{email:'denied@example.com'}).then(r=>logMsg(`testDeny invoke checkout → ${JSON.stringify(r).slice(0,300)}`));
+      } else {
+        // fallback: show modal deny simulation
+        logHook('denied',{tool:{tool:{name:'checkout'}}, invocationId:'demo', input:{email:'denied@example.com'}, reason:'User declined (test button)', metadata:{}} );
+        const log=document.getElementById('log'); if(log) log.textContent += 'testDeny: simulated denied → see hook log\n';
+      }
+    };
+    window.testError = function(){
+      if(window.demoInspect && window.demoInspect.invokeTool){
+        window.demoInspect.invokeTool('search_products',{}).then(r=>logMsg(`testError search_products {} → ${JSON.stringify(r).slice(0,300)}`)).catch(e=>logMsg(`testError ${e.message}`));
+      } else {
+        logHook('error',{tool:{tool:{name:'search_products'}}, invocationId:'demo', input:{}, error:new Error('query is required'), metadata:{}} );
+      }
+    };
+    // HITL modal helper — exposed for hooks
+    window.showApprovalModal = function({tool, input}){
+      return new Promise(resolve=>{
+        const overlay=document.getElementById('hitl-modal');
+        const toolEl=document.getElementById('hitl-tool');
+        const inputEl=document.getElementById('hitl-input');
+        const approve=document.getElementById('hitl-approve');
+        const deny=document.getElementById('hitl-deny');
+        if(!overlay){ resolve(true); return; }
+        toolEl.textContent = tool?.tool?.name || tool?.name || 'checkout';
+        inputEl.textContent = JSON.stringify(input, null, 2);
+        overlay.classList.add('open');
+        overlay.setAttribute('aria-hidden','false');
+        const cleanup=(val)=>{
+          overlay.classList.remove('open');
+          overlay.setAttribute('aria-hidden','true');
+          approve.removeEventListener('click', onApprove);
+          deny.removeEventListener('click', onDeny);
+          overlay.removeEventListener('click', onOverlay);
+          resolve(val);
+        };
+        const onApprove=()=> cleanup(true);
+        const onDeny=()=> cleanup(false);
+        const onOverlay=(e)=>{ if(e.target===overlay) cleanup(false); };
+        approve.addEventListener('click', onApprove);
+        deny.addEventListener('click', onDeny);
+        overlay.addEventListener('click', onOverlay);
+      });
+    };
 
     function renderProducts(filter=''){
       const el=document.getElementById('products');
@@ -393,6 +529,73 @@ await addToCartTool({productId:'keyboard', quantity:1});
         clearTimeout(fallbackTimer);
         const {webmcp}=loaded;
         inspect=loaded.inspect;
+        window.demoInspect = inspect;
+        // ----- Hooks demo -----
+        // Global hooks — run for every tool (before: global→scoped→tool, after: tool→scoped→global)
+        // These log to console + visual hook log + mimic analytics calls
+        const invocationStarts = new Map();
+        const trackInvocation = ({invocationId, tool, input, metadata})=>{
+          metadata.start = performance.now();
+          invocationStarts.set(invocationId, metadata.start);
+          window.logHook('before', {invocationId, tool, input, metadata});
+          console.log(`[webmcp:hook] before ${tool.tool.name} #${invocationId.slice(0,8)}`, input);
+          // Example: add tenant context to every call (state-based mutation)
+          // return { input: { ...input, tenantId: 'tenant_demo_123' } }; // uncomment to enrich
+        };
+        const trackResult = ({invocationId, tool, input, output, metadata})=>{
+          const dur = performance.now() - (metadata.start || 0);
+          window.logHook('after', {invocationId, tool, input, output, metadata: {...metadata, durationMs: Math.round(dur)}});
+          console.log(`[webmcp:hook] after ${tool.tool.name} #${invocationId.slice(0,8)} (${Math.round(dur)}ms)`, output);
+        };
+        const trackError = ({invocationId, tool, input, error, metadata})=>{
+          window.logHook('error', {invocationId, tool, input, error, metadata});
+          console.warn(`[webmcp:hook] error ${tool.tool.name} #${invocationId.slice(0,8)}`, error);
+        };
+        const trackDenied = ({invocationId, tool, input, reason, code, metadata})=>{
+          window.logHook('denied', {invocationId, tool, input, reason, code, metadata});
+          console.warn(`[webmcp:hook] denied ${tool.tool.name} #${invocationId.slice(0,8)} — ${reason} (${code||''})`);
+        };
+        // Example enrichment hook — adds requestId metadata (visible in hook log)
+        const addRequestMeta = ({metadata})=>{ metadata.requestId = `req_${Math.random().toString(36).slice(2,6)}`; };
+        // Example output hook — redacts PII from after output (checkout)
+        const redactCheckoutAfter = ({output})=>{
+          if(output && output.order && output.order.email){
+            const redacted = {...output, order:{...output.order, email: output.order.email.replace(/(.).+@/, '$1***@')}};
+            // Not mutating original cart logic, just what the agent sees
+            return { output: redacted };
+          }
+        };
+
+        // HITL hook — checkout requires human approval via modal
+        const requireApproval = async ({tool, input})=>{
+          const toggle = document.getElementById('hitl-toggle');
+          const needsApproval = toggle ? toggle.checked : true;
+          if(!needsApproval) return;
+          // Only for checkout in this demo
+          if(tool.tool.name !== 'checkout') return;
+          const total = window.cart.reduce((s,l)=>s+ (window.PRODUCTS[l.productId]?.price||0)*l.quantity,0);
+          if(total===0) return; // empty cart will error anyway
+          console.log('[webmcp:hitl] prompting approval for', tool.tool.name, input, {total});
+          const approved = await window.showApprovalModal({tool, input: {...input, _cartTotal: total, _items: [...window.cart] }});
+          if(!approved){
+            // Also log via denied hook later
+            return { action:'deny', message:'User declined checkout in approval modal', code:'USER_DENIED' };
+          }
+          // Enrich with approvedBy metadata via metadata bag (available to after hooks)
+          // We use closure metadata? Instead enrich input with approved flag
+          // return { input: {...input, _approved: true } };
+        };
+
+        // Install global hooks (all tools inherit)
+        webmcp.configure({
+          hooks: {
+            before: [addRequestMeta, trackInvocation],
+            after:  [trackResult],
+            error:  [trackError],
+            denied: [trackDenied],
+          }
+        });
+
         const tools = [
           webmcp(window.searchProducts, { description: 'Search products by name or ID', fields:{ query:{type:'string',description:'Search term'}, limit:{type:'integer',minimum:1,maximum:20,default:10,description:'Max results'} } }),
           webmcp(window.getProduct, { description: 'Get product details', fields:{ productId:{type:'string', enum:Object.keys(window.PRODUCTS), description:'Product ID'} } }),
@@ -403,10 +606,29 @@ await addToCartTool({productId:'keyboard', quantity:1});
               productId:{ type:'string', enum:Object.keys(window.PRODUCTS), description:'Product ID' },
               quantity:{ type:'integer', minimum:1, maximum:10, description:'Quantity 1–10 (required)' }
             },
-            annotations:{ readOnlyHint:false }
+            annotations:{ readOnlyHint:false },
+            hooks: {
+              // Example: tool-level before that normalizes quantity (demo)
+              before: [({input})=>{
+                // ensure quantity default
+                if(input.quantity==null) return { input: {...input, quantity: 1} };
+              }],
+              after: [({output})=>{
+                // add metadata visible only to agent
+                if(output && output.added) return { output: {...output, _via:'hooks-demo'} };
+              }]
+            }
           }),
           webmcp(window.updateCart, { description: 'Update quantity (0 removes)', fields:{ productId:{type:'string', enum:Object.keys(window.PRODUCTS)}, quantity:{type:'integer',minimum:0,maximum:10,description:'New quantity'} } }),
-          webmcp(window.checkout, { description: 'Checkout cart', fields:{ email:{type:'string',format:'email',description:'Customer email'}, address:{type:'string',description:'Shipping address (optional)'} } }),
+          webmcp(window.checkout, {
+            description: 'Checkout cart',
+            fields:{ email:{type:'string',format:'email',description:'Customer email'}, address:{type:'string',description:'Shipping address (optional)'} },
+            hooks: {
+              before: [requireApproval],
+              after: [redactCheckoutAfter],
+              denied: [({reason})=>{ console.log('[checkout] denied hook:', reason); }]
+            }
+          }),
         ];
         // expose
         window.demoTools = tools;

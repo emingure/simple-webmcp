@@ -41,7 +41,12 @@ export function normalizeResult(value: unknown): NormalizedResult {
 }
 
 export function normalizeError(err: unknown): NormalizedResult {
-  const message = err instanceof Error ? err.message : typeof err === 'string' ? err : (() => {
+  const message = (() => {
+    if (err instanceof Error) return err.message;
+    if (typeof err === 'string') return err;
+    if (err && typeof err === 'object' && 'message' in (err as any) && typeof (err as any).message === 'string') {
+      return (err as any).message;
+    }
     try { return JSON.stringify(err); } catch { return String(err); }
   })();
   return {

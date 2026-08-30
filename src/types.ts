@@ -65,6 +65,9 @@ export type ToolContract = {
   annotations?: WebMCPAnnotations;
 };
 
+// Forward-declare hooks type to avoid circular import at runtime (type-only)
+import type { WebMCPHooks } from './hooks/types.js';
+
 // Options for webmcp(fn, opts)
 // Corrected per §6: single `schema` + `outputSchema`, no `inputSchema` alias.
 // Hierarchy (§4 fix): 1. schema → 2. inferred → 3. fields patch → 4. metadata
@@ -96,6 +99,8 @@ export type WebMCPOptions<F extends (...args: any) => any> = {
   enabled?: boolean;
   /** If true, ambiguous inference throws instead of warn */
   strict?: boolean;
+  /** Lifecycle hooks — before/after/error/denied (agent execute only, not direct call) */
+  hooks?: WebMCPHooks<F>;
   /**
    * Legacy internal — not public in 0.1. Prefer single object param fn(input).
    * Kept for internal use by .bind() defer candidate.
@@ -123,6 +128,11 @@ export type WebMCPTool<F extends (...args: any) => any> = F & {
   // internal: standard schemas for validation if provided
   readonly __standardSchema?: StandardSchemaV1;
   readonly __outputStandardSchema?: StandardSchemaV1;
+  // internal: hooks (tool-level) and merged scoped hooks
+  readonly __hooks?: WebMCPHooks<F>;
+  readonly __webmcpOptions?: WebMCPOptions<F>;
+  readonly __activeSignal?: AbortSignal;
+  readonly __scopeHooks?: WebMCPHooks<any>;
 };
 
 export type RegistrationStatus = 'unregistered' | 'registering' | 'registered' | 'unregistering' | 'error' | 'unsupported';

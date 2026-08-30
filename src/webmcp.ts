@@ -1,11 +1,12 @@
 import type { WebMCPOptions, WebMCPTool, ToolContract, RegistrationStatus } from './types.js';
 import type { JsonSchema } from './types.js';
-import { SimpleWebMCPError, ConfigurationError, NotSupportedError } from './errors.js';
+import { SimpleWebMCPError, ConfigurationError, NotSupportedError, ValidationError } from './errors.js';
 import { toSnakeCase, getFunctionName, warnNoDescription, isWebMCPSupported } from './internal/utils.js';
 import { inferRuntime } from './internal/inferRuntime.js';
 import { buildFinalInputSchema, normalizeOutputSchema } from './internal/schema.js';
 import { registry } from './internal/registry.js';
-import { wrapExecute } from './internal/normalize.js';
+import { createHookedExecute } from './hooks/engine.js';
+import { getGlobalHooks, mergeHooksOrdered, configureWebMCP, resetGlobalHooks } from './hooks/config.js';
 
 /**
  * Callable wrapper factory — core of simple-webmcp.
@@ -33,10 +34,26 @@ export function webmcp<F extends (...args: any) => any>(fn: F, options?: WebMCPO
   if (anyFn.__webmcpBrand === true && anyFn.definition) {
     // Already a tool — apply new options as patch? For 0.1, return as is if no opts, else merge
     if (!options || Object.keys(options).length === 0) return anyFn as WebMCPTool<F>;
-    // Merge patch onto existing tool's schema
-    // For simplicity, re-wrap original __fn
+    // Merge patch onto existing tool's schema. For hooks, concat arrays instead of replacing.
+    const prevOpts = (anyFn.__webmcpOptions || {}) as WebMCPOptions<any>;
+    const mergedOpts: WebMCPOptions<F> = { ...(prevOpts as any), ...(options as any) } as WebMCPOptions<F>;
+    if (prevOpts.hooks || (options as any)?.hooks) {
+      const prevHooks: any = prevOpts.hooks ?? {};
+      const nextHooks: any = (options as any).hooks ?? {};
+      mergedOpts.hooks = {
+        before: [...(prevHooks.before ?? []), ...(nextHooks.before ?? [])],
+        after: [...(prevHooks.after ?? []), ...(nextHooks.after ?? [])],
+        error: [...(prevHooks.error ?? []), ...(nextHooks.error ?? [])],
+        denied: [...(prevHooks.denied ?? []), ...(nextHooks.denied ?? [])],
+      } as any;
+      // Remove empty arrays to keep undefined
+      for (const k of ['before', 'after', 'error', 'denied'] as const) {
+        if ((mergedOpts.hooks as any)[k]?.length === 0) delete (mergedOpts.hooks as any)[k];
+      }
+      if (mergedOpts.hooks && Object.keys(mergedOpts.hooks).length === 0) delete (mergedOpts as any).hooks;
+    }
     const original = (anyFn.__fn ?? fn) as F;
-    return webmcp(original, { ...(anyFn.__webmcpOptions || {}), ...options } as WebMCPOptions<F>);
+    return webmcp(original, mergedOpts);
   }
 
   const name = options?.name ?? toSnakeCase(getFunctionName(fn));
@@ -105,7 +122,8 @@ export function webmcp<F extends (...args: any) => any>(fn: F, options?: WebMCPO
   let unregisterFn: (() => void) | null = null;
   let activeController: AbortController | null = null;
 
-  const wrappedExec = wrapExecute(fn as any);
+  // Hooks — tool-level (captured per tool; global/scoped merged at execute time)
+  const toolHooks = options?.hooks ? { ...options.hooks } : undefined;
 
   const toolWrapper = wrapper as WebMCPTool<F>;
   // Brand
@@ -114,8 +132,28 @@ export function webmcp<F extends (...args: any) => any>(fn: F, options?: WebMCPO
   (toolWrapper as any).__webmcpOptions = options;
   if (standard) (toolWrapper as any).__standardSchema = standard;
   if (outNorm.standard) (toolWrapper as any).__outputStandardSchema = outNorm.standard;
+  if (toolHooks) (toolWrapper as any).__hooks = toolHooks;
   (toolWrapper as any).tool = contract;
   (toolWrapper as any).definition = contract;
+
+  // Hooked execute — merges global + scoped (via __scopeHooks) + tool at invocation time
+  // Includes validation after before-hooks, cooperative signal, safe error observer
+  const hookedExec = createHookedExecute(fn as any, toolWrapper as any, contract, {
+    getHooks: () => {
+      const globalHooks = getGlobalHooks();
+      const scopeHooks = (toolWrapper as any).__scopeHooks as any;
+      return mergeHooksOrdered({ globalHooks, scopedHooks: scopeHooks, toolHooks });
+    },
+    validate: standard
+      ? (input: unknown) => {
+          const res = standard['~standard'].validate(input);
+          if ('issues' in res && (res as any).issues && (res as any).issues.length > 0) {
+            const msg = (res as any).issues.map((i: any) => i.message).join('; ');
+            throw new ValidationError(`Validation failed: ${msg}`);
+          }
+        }
+      : undefined,
+  });
 
   Object.defineProperty(toolWrapper, 'status', {
     get() { return status; },
@@ -148,6 +186,8 @@ export function webmcp<F extends (...args: any) => any>(fn: F, options?: WebMCPO
     status = 'registering';
     const controller = new AbortController();
     activeController = controller;
+    // Expose signal for hook engine (cooperative abort)
+    (toolWrapper as any).__activeSignal = controller.signal;
 
     // Wire external signal
     if (opts?.signal) {
@@ -155,6 +195,7 @@ export function webmcp<F extends (...args: any) => any>(fn: F, options?: WebMCPO
         controller.abort();
         status = 'unregistered';
         activeController = null;
+        try { delete (toolWrapper as any).__activeSignal; } catch {}
         return () => {};
       }
       opts.signal.addEventListener('abort', () => {
@@ -166,12 +207,13 @@ export function webmcp<F extends (...args: any) => any>(fn: F, options?: WebMCPO
     controller.signal.addEventListener('abort', () => {
       if (status !== 'unregistered') status = 'unregistered';
       activeController = null;
+      try { delete (toolWrapper as any).__activeSignal; } catch {}
     }, { once: true });
 
     try {
       const unregister = await registry.register(contract, {
         signal: controller.signal,
-        execute: wrappedExec as any,
+        execute: hookedExec as any,
       });
       // registry handles dupe and polyfill
       unregisterFn = unregister;
@@ -187,6 +229,7 @@ export function webmcp<F extends (...args: any) => any>(fn: F, options?: WebMCPO
         try { unregister(); } catch {}
         status = 'unregistered';
         activeController = null;
+        try { delete (toolWrapper as any).__activeSignal; } catch {}
         unregisterFn = null;
       };
     } catch (err: any) {
@@ -195,6 +238,8 @@ export function webmcp<F extends (...args: any) => any>(fn: F, options?: WebMCPO
       } else {
         status = 'error';
       }
+      activeController = null;
+      try { delete (toolWrapper as any).__activeSignal; } catch {}
       registrationPromise = Promise.reject(err);
       // Re-throw as typed
       if (err instanceof SimpleWebMCPError) throw err;
@@ -213,6 +258,7 @@ export function webmcp<F extends (...args: any) => any>(fn: F, options?: WebMCPO
     } catch {}
     status = 'unregistered';
     activeController = null;
+    try { delete (toolWrapper as any).__activeSignal; } catch {}
     unregisterFn = null;
     registrationPromise = null;
   };
@@ -245,9 +291,23 @@ export function webmcp<F extends (...args: any) => any>(fn: F, options?: WebMCPO
   return webmcp(fn, { ...(opts as any), global: true } as WebMCPOptions<F>);
 };
 
+// Global hook configuration — typed helpers
+type WebMCPHelpers = {
+  global: <F extends (...args: any) => any>(fn: F, opts?: Omit<WebMCPOptions<F>, 'global' | 'scope'>) => WebMCPTool<F>;
+  configure: typeof configureWebMCP;
+  getGlobalHooks: typeof getGlobalHooks;
+  resetGlobalHooks: typeof resetGlobalHooks;
+  isWebMCPTool: (v: unknown) => boolean;
+};
+(webmcp as unknown as WebMCPHelpers).configure = configureWebMCP;
+(webmcp as unknown as WebMCPHelpers).getGlobalHooks = getGlobalHooks;
+(webmcp as unknown as WebMCPHelpers).resetGlobalHooks = resetGlobalHooks;
+
 // Optional internal check
-(webmcp as any).isWebMCPTool = function isWebMCPTool(v: unknown): boolean {
+(webmcp as unknown as WebMCPHelpers).isWebMCPTool = function isWebMCPTool(v: unknown): boolean {
   return !!(v as any)?.__webmcpBrand;
 };
+
+export { configureWebMCP, getGlobalHooks, resetGlobalHooks };
 
 export default webmcp;

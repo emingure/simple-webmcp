@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useMemo } from 'react';
 import type { WebMCPTool, WebMCPOptions } from '../types.js';
 import { isWebMCPSupported } from '../internal/utils.js';
 import { webmcp } from '../webmcp.js';
+import { useWebMCPHooksContext } from '../hooks/provider.js';
 
 function isTool<F extends (...a: any) => any>(v: WebMCPTool<F> | F): v is WebMCPTool<F> {
   return !!(v as any)?.__webmcpBrand;
@@ -31,6 +32,7 @@ export function useWebMCP<F extends (...args: any) => any>(
   opts?: any,
 ): UseWebMCPResult | (WebMCPTool<F> & UseWebMCPResult) {
   const enabled = opts?.enabled ?? true;
+  const scopedHooks = useWebMCPHooksContext();
 
   // Determine if arg is raw function vs already-wrapped tool
   const isRawFunction = useMemo(() => {
@@ -58,6 +60,7 @@ export function useWebMCP<F extends (...args: any) => any>(
     opts?.global,
     opts?.strict,
     opts?.outputSchema,
+    opts?.hooks,
     opts?.enabled,
   ]);
 
@@ -72,6 +75,38 @@ export function useWebMCP<F extends (...args: any) => any>(
 
   const toolRef = useRef(tool);
   toolRef.current = tool;
+
+  // Attach scoped hooks (from WebMCPProvider) to tool for engine to pick up.
+  // Mutate per-instance so createHookedExecute closure (in webmcp.ts) sees it.
+  // Note: scoped hooks are stored on the tool instance (global per tool) — if the same
+  // tool is mounted under two different providers simultaneously, last write wins.
+  // For isolation, create separate tool instances per scope.
+  // Cooperative signal path uses tool.__activeSignal set by register().
+  useEffect(() => {
+    const t: any = toolRef.current;
+    const hasScoped = scopedHooks && Object.keys(scopedHooks).length > 0;
+    if (hasScoped) t.__scopeHooks = scopedHooks;
+    else if (t.__scopeHooks) delete t.__scopeHooks;
+    return () => {
+      // Cleanup on unmount / provider change — clear if still our scopedHooks
+      const cur: any = t.__scopeHooks;
+      if (cur === scopedHooks) {
+        try { delete t.__scopeHooks; } catch {}
+      }
+    };
+  }, [scopedHooks, tool]);
+
+  // Also keep synchronous update for immediate register path (before effect fires)
+  // This ensures first mount's register sees scoped hooks even before effect.
+  if (scopedHooks && Object.keys(scopedHooks).length > 0) {
+    (tool as any).__scopeHooks = scopedHooks;
+  } else if ((tool as any).__scopeHooks) {
+    // Clear if provider removed; keep until effect cleanup if inside provider
+    // Do not delete here if effect will manage — but synchronous clear helps when provider removed synchronously
+    if (!(scopedHooks && Object.keys(scopedHooks).length > 0)) {
+      try { delete (tool as any).__scopeHooks; } catch {}
+    }
+  }
 
   useEffect(() => {
     if (!enabled) {

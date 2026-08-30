@@ -44,8 +44,29 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 Mounted = exposed. In Next.js `app/layout.tsx` this naturally gives **route-level** scope. `Scope` is in `simple-webmcp/react`, not `next` — React subtree, not route API.
 
+## `WebMCPProvider` — scoped hooks (tenant, analytics)
+
+```tsx
+import { WebMCPProvider } from 'simple-webmcp/react';
+
+export function DashboardLayout({children, tenantId}:{tenantId:string, children:React.ReactNode}){
+  return (
+    <WebMCPProvider hooks={{
+      before: [({input})=>({ input:{...(input as any), tenantId}})],
+      after:  [({output})=> console.log('[hook:after]', output)],
+      error:  [({error})=> console.warn(error)],
+    }}>
+      <Scope tools={[searchTool]}>{children}</Scope>
+    </WebMCPProvider>
+  );
+}
+```
+
+Nesting merges: outer→inner. Global `webmcp.configure` still outermost.
+
 ## Patterns
 
 * Page-level tool: `useWebMCP` in page component.
 * Shared tools: `Scope` in layout.
+* Scoped hooks/tenant: `WebMCPProvider` in layout (see above).
 * Global: `webmcp.global(fn, opts)` (or `webmcp(fn,{global:true})`) — no hook needed, but prefer Scoped for least privilege.

@@ -20,6 +20,8 @@ export default defineConfig({
           { text: 'Getting Started', link: '/getting-started' },
           { text: 'Schema & Inference', link: '/guide/schema' },
           { text: 'React', link: '/guide/react' },
+          { text: 'Hooks — before/after/error/denied', link: '/guide/hooks' },
+          { text: 'Analytics & Observability', link: '/guide/analytics' },
           { text: 'Inspect', link: '/guide/inspect' },
           { text: 'Zod & StandardSchema', link: '/guide/zod' },
           { text: 'Polyfill', link: '/guide/polyfill' },
@@ -30,6 +32,7 @@ export default defineConfig({
         items: [
           { text: 'Core — webmcp()', link: '/api/' },
           { text: 'React — useWebMCP / Scope', link: '/api/react' },
+          { text: 'Hooks', link: '/api/hooks' },
           { text: 'Inspect', link: '/api/inspect' },
           { text: 'Zod Adapter', link: '/api/zod' },
           { text: 'Errors & Registry', link: '/api/errors' },

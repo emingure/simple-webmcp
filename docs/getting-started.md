@@ -102,8 +102,30 @@ schema (whole StandardSchema/JSON) → inferred (runtime 0.1, build TS/JSDoc 0.2
 
 Prefer `fn({query, limit})` single object param — best inference. `strict:true` makes low-confidence inference throw.
 
+### Hooks (global / scoped / tool)
+
+```ts
+// global — analytics once
+webmcp.configure({ hooks:{ before:[track], after:[trackResult], error:[report] }});
+
+// tool — HITL approval
+webmcp(checkout, { hooks:{ before:[async ({input})=>{
+  const ok = await confirm(`Approve £${total}?`);
+  if(!ok) return {action:'deny', message:'User declined'};
+}]}});
+
+// React scoped — tenant
+<WebMCPProvider hooks={{ before:[({input})=>({input:{...input, tenantId}})] }}>
+  <Scope tools={[tool]}>{children}</Scope>
+</WebMCPProvider>
+```
+
+Hooks wrap only the agent path — `tool({input})` stays pure. See [Guide — Hooks](/guide/hooks) and [Analytics](/guide/analytics).
+
 ## Next steps
 
 * [Schema & Inference](/guide/schema) — fields, Zod, runtime vs build
-* [React](/guide/react) — `useWebMCP`, `Scope`, StrictMode
+* [React](/guide/react) — `useWebMCP`, `Scope`, `WebMCPProvider`
+* [Hooks](/guide/hooks) — `before/after/error/denied`, HITL demo
+* [Analytics](/guide/analytics) — PostHog, Mixpanel, GA4, Sentry
 * [API](/api/) — `webmcp()` options, `register()` lifecycle

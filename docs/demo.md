@@ -1,6 +1,6 @@
 # Live Demo
 
-> **Try it:** The demo is a tiny shopping cart where `addToCart` is an existing function made agent-readable with one line. The **Inspect** panel below is `simple-webmcp/inspect` — same tools agents see.
+> **Try it:** The demo is a tiny shopping cart where `addToCart` is an existing function made agent-readable with one line. The **Inspect** panel below is `simple-webmcp/inspect` — same tools agents see. The new **Hooks & HITL** card logs every `before/after/error/denied` to screen and `console` (`[webmcp:hook]`).
 
 <iframe src="/simple-webmcp/demo/index.html" style="width:100%;height:920px;border:1px solid var(--vp-c-divider);border-radius:12px" loading="lazy" title="Shopping cart demo + inspect"></iframe>
 
@@ -26,6 +26,39 @@ Agent: “Add a keyboard to my cart.”
 *Chrome canary with WebMCP origin trial + inspector extension. In other browsers, uses `simple-webmcp/dev-polyfill` for local testing (in-memory, not real cross-browser). For production cross-browser, the demo also works with `@mcp-b/webmcp-polyfill`.*
 
 </div>
+
+## Hooks & HITL — see it in the demo
+
+The demo now wires **global hooks** (every tool) and a **tool-level HITL hook** for `checkout`:
+
+```ts
+// global — logs every invocation (see Hooks & HITL card + console)
+webmcp.configure({
+  hooks: {
+    before: [({tool, input, metadata})=>{ metadata.start=performance.now(); console.log('[hook:before]', tool.tool.name, input); }],
+    after:  [({tool, output, metadata})=> console.log('[hook:after]', tool.tool.name, output, `${Math.round(performance.now()-metadata.start)}ms`)],
+    error:  [({tool, error})=> console.warn('[hook:error]', tool.tool.name, error)],
+    denied: [({tool, reason})=> console.warn('[hook:denied]', tool.tool.name, reason)],
+  }
+});
+
+// tool-level — checkout asks for human approval via modal
+const checkoutTool = webmcp(checkout, {
+  description: 'Checkout cart',
+  hooks: {
+    before: [async ({tool, input})=>{
+      const approved = await showApprovalModal({tool, input});
+      if (!approved) return { action:'deny', message:'User declined checkout', code:'USER_DENIED' };
+    }],
+    after: [({output})=>({ output: redact(order=>order.email) })],
+  }
+});
+```
+
+- Toggle **Require approval for checkout** → **Inspect → Invoke checkout** → modal appears → **Deny** returns `Denied: User declined…` (`isError:true`) and `denied` hooks fire (hook log turns yellow).
+- **Test deny / Test error** buttons also trigger the log without an agent.
+
+See [Guide — Hooks](/guide/hooks) for the full lifecycle (`before` → `validate` → `fn` → `after` → `error/denied`).
 
 ## How it's built — one function
 
