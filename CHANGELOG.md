@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0
+
+### Minor Changes
+
+- [`556c86d`](https://github.com/emingure/simple-webmcp/commit/556c86de29c8c70f048e9fd43ae736abcaf3c8c3) Thanks [@emingure](https://github.com/emingure)! - feat(hooks): add before/after/error/denied lifecycle hooks with global/scoped/tool scoping and HITL
+
+  Add state-based hook arrays (`hooks: { before, after, error, denied }`) for `webmcp(fn)`, `webmcp.configure()` global and `<WebMCPProvider>` scoped. Hooks wrap only the agent `execute` path, support input/output mutation, deny via `{action:'deny'}`, cooperative `AbortSignal`, shared `metadata` bag and `invocationId`. Includes HITL demo (checkout approval modal with deny), hook log UI + console, docs for hooks and analytics integrations (PostHog, Mixpanel, Amplitude, GA4, Segment, Sentry, Datadog, Vercel, Plausible), and comprehensive tests.
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
@@ -10,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.0] - 2026-08-29
 
 ### Added
+
 - `useWebMCP(fn, opts)` / `useTool` 1-line overload — wrap + register while mounted, returns `WebMCPTool & status` (optional, `useWebMCP(tool)` still works) — `src/react/useWebMCP.ts:20`
 - `simple-webmcp/zod` as separate entry (5.32KB, keeps core 6.26KB gz lean) — `src/zod.ts:1`, `src/internal/schema.ts:1` now uses global converter
 - `simple-webmcp/inspect` core API — `listTools()`, `listToolsAsync()`, `getTool()`, `invokeTool()`, `onToolsChanged()`, `isSupported()` — `src/inspect.ts:1` (merges `registry` + `document.modelContext.getTools()`)
@@ -23,12 +32,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `examples/demo` + `docs/public/demo` static demo, `fixtures/next-app` spike placeholder, `.github/workflows/docs.yml:1` Pages
 
 ### Changed
+
 - `registry`: `supported` vs `registered` mutually exclusive — `status:'unsupported'` instead of false `registered` when `document.modelContext` missing — `src/internal/registry.ts:53`, `src/webmcp.ts:142`, `src/types.ts:128` (`RegistrationStatus` + `unsupported`)
 - `polyfill`: documented as **dev/testing shim**, not interoperability polyfill — recommend `@mcp-b/webmcp-polyfill` for real cross-browser — `src/polyfill.ts:1`, `docs/guide/polyfill.md:1`, `.agents/skills/webmcp-simple/SKILL.md:1`
 - `README.md` + `docs/index.md` hero to “Make your existing functions agent-ready” (`One function. Two interfaces.`), Why, before/after `add_to_cart`, competitor table, complementary MCP-B positioning
 - `docs/api/index.md:1` — `outputSchema` kept internally but not marketed; `status` now includes `unsupported`
 
 ### Fixed
+
 - `useWebMCP` raw function now auto-wraps via `webmcp()` with stable `useMemo` deps (was warn/error) — `src/react/useWebMCP.ts:20`
 - `react` tests — mock `document` now patches `modelContext` without wiping `document.body` (jsdom) — `tests/react.test.tsx:1`, `tests/scope.test.tsx:1`
 - `registration` test — polyfill path now expects `unsupported` — `tests/registration.test.ts:98`
@@ -37,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2026-08-29
 
 ### Added
+
 - Core `webmcp(fn, opts)` — callable wrapper, `webmcp.global()` alias
 - Hierarchy `schema` (whole StandardSchema/JSON) > inferred (runtime) > `fields` patch (`Partial<JsonSchema>` | per-field StandardSchema) > metadata
 - `FieldDef` simplified to `Partial<JsonSchema>` per review
@@ -51,11 +63,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Build + CI ready (not yet published)
 
 ### Deferred
+
 - 0.2 `unplugin` TS/JSDoc inference (Vite/Webpack)
 - 0.3 `webmcp.server()` Next.js — experimental, requires `fixtures/next-app` spike vs Turbopack default
 - 0.4 `bind()`, DevTools overlay, CLI `inspect`
 
 ### Fixed per review
+
 - Hierarchy inverted → corrected, `fields` is patch
 - `webmcp.server()` made spike, not promised
 - Next compiler removed from 0.1 (Turbopack)
