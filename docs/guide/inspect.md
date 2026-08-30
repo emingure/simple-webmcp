@@ -1,6 +1,11 @@
+---
+title: Inspect — See Tools Agents See | WebMCP SDK
+description: Inspect WebMCP tools without an LLM — listTools, invokeTool, onToolsChanged, and the Inspector React component. Same tools agents see.
+---
+
 # Inspect
 
-`simple-webmcp` now ships inspect tools so you can see the same tools agents see — without an LLM.
+`simple-webmcp` ships inspect tools so you can see the same tools agents see — without an LLM.
 
 ## Programmatic — `simple-webmcp/inspect`
 
@@ -22,7 +27,7 @@ const off = onToolsChanged((tools) => console.log(tools));
 off();
 ```
 
-* `listTools()` merges `registry.list()` (our wrapper) and `document.modelContext.getTools()` / `listTools()` if native.
+* `listTools()` merges `registry.list()` (our wrapper) and `document.modelContext.getTools()` / `listTools()` if native. See [Chrome WebMCP API](https://developer.chrome.com/docs/ai/webmcp/imperative-api).
 * `invokeTool(name, args)` tries `modelContext.executeTool` / `invokeTool` / `callTool`, then `registry` fallback and shim `_tools`.
 * Works with `simple-webmcp/dev-polyfill` shim in dev (in-memory).
 
@@ -43,7 +48,7 @@ export function DevPanel() {
 * Per-tool **Invoke** with JSON textarea, example prefilled from `inputSchema`, result / error display
 * Polls via `onToolsChanged`
 
-Import from `simple-webmcp/devtools` — separate entry `16KB` raw, not in core. Use only in dev.
+Import from `simple-webmcp/devtools` — separate entry not in core. Use only in dev. See [Reference — Inspect](/reference/inspect).
 
 ## Demo — shopping cart
 
@@ -54,6 +59,16 @@ const addToCartTool = webmcp(addToCart, { description: 'Add product', fields: {.
 await addToCartTool.register();
 ```
 
-The **Inspect** panel below lists `add_to_cart` via `simple-webmcp/inspect` and lets you invoke with `{"productId":"keyboard","quantity":1}` — same as the agent.
+The **Inspect** panel below lists `add_to_cart` via `simple-webmcp/inspect` and lets you invoke with `{"productId":"keyboard","quantity":1}` — same as the agent. Try [Hooks & HITL](/guide/hooks) flows in the demo.
 
-Try `npm run docs:dev` → open `/demo/` (http://localhost:5173/simple-webmcp/demo/) and open the Inspect card.
+Try `npm run docs:dev` → open `/demo/` and open the Inspect card.
+
+## See also
+
+- [Getting Started](/getting-started)
+- [Reference — Inspect](/reference/inspect)
+- [Guide — Hooks](/guide/hooks) — hook log visible in demo
+- [Guide — Browser Support](/guide/browser-support)
+- [Analytics — Step-by-Step](/guide/analytics/step-by-step) — verify hooks via Inspect
+- [Demo](/demo)
+- [External: Chrome WebMCP API](https://developer.chrome.com/docs/ai/webmcp/imperative-api)

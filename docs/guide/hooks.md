@@ -1,8 +1,13 @@
+---
+title: Hooks — before/after/error/denied | WebMCP SDK
+description: Lifecycle hooks for WebMCP tools — enrich input, redact output, add HITL approval, track analytics. Global, scoped & tool hooks with ordering.
+---
+
 # Hooks — `before` / `after` / `error` / `denied`
 
-> **One hook API, three scopes.** Function-first, state-based, no chain abstraction. `before` mutates `input` as it flows, `after` mutates `output`, `error` observes failures, `denied` handles HITL rejections. All logs go to console + visible hook log in the demo.
+> **One hook API, three scopes.** Function-first, state-based. `before` mutates `input` as it flows, `after` mutates `output`, `error` observes failures, `denied` handles HITL rejections. All logs go to console + visible hook log in the [demo](/demo).
 
-Hooks wrap **only the agent `execute` path** (`document.modelContext.registerTool` → `execute`). Direct human calls `tool({input})` stay pure — `search({query:'alice'})` never triggers hooks.
+Hooks wrap **only the agent `execute` path** (`document.modelContext.registerTool` → `execute` via the [Chrome WebMCP API](https://developer.chrome.com/docs/ai/webmcp/imperative-api)). Direct human calls `tool({input})` stay pure — `search({query:'alice'})` never triggers hooks.
 
 *Demo: open [/demo](/demo) → **Hooks & HITL** card. Toggle “Require approval for checkout”, then **Inspect → Invoke checkout**. Watch hook log + `console` (`[webmcp:hook]`) and the approval modal.*
 
@@ -41,6 +46,8 @@ import { WebMCPProvider } from 'simple-webmcp/react';
   <Scope tools={[tool]}>{children}</Scope>
 </WebMCPProvider>
 ```
+
+See [Analytics Step-by-Step](/guide/analytics/step-by-step) for the 4-step setup and [Reference — Hooks](/reference/hooks) for types.
 
 ## Lifecycle & ordering
 
@@ -113,7 +120,7 @@ const trackError: ErrorHook<typeof deleteUser> = ({error, input, tool, invocatio
 ```
 
 - Return `void` only. Throwing inside `error` is swallowed, second `error` still runs.
-- No recovery in v1 (`{recover}` deferred) — return value is ignored.
+- Return value is ignored — error hooks are observational.
 
 ## Denied — HITL analytics
 
@@ -128,7 +135,7 @@ Only runs when a `before` returned `action:'deny'`. Useful to distinguish “age
 ## Tool vs global vs scoped
 
 ```ts
-// global — config singleton (like zod converter), accumulated via concat
+// global — accumulated via concat
 webmcp.configure({ hooks:{ before:[a] }});
 webmcp.configure({ hooks:{ before:[b] }}); // => [a,b]
 webmcp.configure({ hooks:{ before:[c] }, replace:true }); // => [c]
@@ -145,7 +152,7 @@ const t2 = webmcp(t1, { hooks:{ before:[b] }}); // before=[a,b]
 </WebMCPProvider>
 ```
 
-Clear global in tests: `import { resetGlobalHooks } from 'simple-webmcp'; resetGlobalHooks();`.
+In tests, clear global hooks with `resetGlobalHooks()` and registry with `registry.clear()` after each test. See testing notes in [Reference — Hooks](/reference/hooks).
 
 ## Direct calls are not hooked
 
@@ -168,6 +175,9 @@ If you need the same enrichment for human calls, call the function directly or s
 
 ## See also
 
-- [API — Hooks](/api/hooks) — type reference
-- [Guide — Analytics](/guide/analytics) — PostHog/Mixpanel/GA4/Segment/Sentry examples
-- [Demo — Shopping cart + hook log](/demo) — live `before/after/error/denied` with console ` [webmcp:hook]`
+- [Reference — Hooks](/reference/hooks) — type reference
+- [Analytics — Overview](/guide/analytics/) — PostHog, Sentry, GA4
+- [Analytics — Step-by-Step](/guide/analytics/step-by-step) — 4-step setup
+- [Guide — React](/guide/react) — `WebMCPProvider` scoped hooks
+- [Demo — Shopping cart + hook log](/demo) — live `before/after/error/denied` with console `[webmcp:hook]`
+- [External: Chrome WebMCP API](https://developer.chrome.com/docs/ai/webmcp/imperative-api)

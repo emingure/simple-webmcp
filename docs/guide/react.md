@@ -1,3 +1,8 @@
+---
+title: React — useWebMCP, Scope & WebMCPProvider | WebMCP SDK
+description: Expose WebMCP tools from React with useWebMCP, Scope, and WebMCPProvider. Lifecycle via AbortSignal, StrictMode-safe, route-level via Next.js layout.
+---
+
 # React
 
 ```tsx
@@ -6,9 +11,11 @@ import { webmcp } from 'simple-webmcp';
 import { useWebMCP, Scope } from 'simple-webmcp/react';
 ```
 
-## `useWebMCP` — now optional wrapper
+For vanilla usage, see [Getting Started](/getting-started). For API types, see [Reference — React](/reference/react). For browser support, see [Browser Support](/guide/browser-support).
 
-`useWebMCP` accepts **either** a wrapped `WebMCPTool` **or a raw function** — raw is auto-wrapped and visible for the component's lifetime. This is the 1-line ergonomic requested:
+## `useWebMCP` — optional wrapper
+
+`useWebMCP` accepts **either** a wrapped `WebMCPTool` **or a raw function** — raw is auto-wrapped and visible for the component's lifetime:
 
 ```tsx
 // 1-line: wrap + register while mounted, still callable
@@ -29,7 +36,7 @@ const tool2 = useTool(search, { description: 'Search' });
 ```
 
 * Registers via `registry.register(contract, {signal})` (async `Promise<void>` per WebMCP spec).
-* Unregisters on unmount via `AbortSignal` — mirrors spec.
+* Unregisters on unmount via `AbortSignal` — mirrors the [Chrome WebMCP API](https://developer.chrome.com/docs/ai/webmcp/imperative-api).
 * Deduped for StrictMode double-mount.
 * `enabled:false` → inert.
 * For `useWebMCP(tool)` (already wrapped) returns `{supported,registered,error,status}` for backward compat; for `useWebMCP(fn, opts)` returns `WebMCPTool & status` so you get callable + state in one.
@@ -62,7 +69,7 @@ export function DashboardLayout({children, tenantId}:{tenantId:string, children:
 }
 ```
 
-Nesting merges: outer→inner. Global `webmcp.configure` still outermost.
+Nesting merges: outer→inner. Global `webmcp.configure` still outermost. See [Guide — Hooks](/guide/hooks) and [Analytics Step-by-Step](/guide/analytics/step-by-step) for the lifecycle.
 
 ## Patterns
 
@@ -70,3 +77,14 @@ Nesting merges: outer→inner. Global `webmcp.configure` still outermost.
 * Shared tools: `Scope` in layout.
 * Scoped hooks/tenant: `WebMCPProvider` in layout (see above).
 * Global: `webmcp.global(fn, opts)` (or `webmcp(fn,{global:true})`) — no hook needed, but prefer Scoped for least privilege.
+
+## See also
+
+- [Getting Started](/getting-started) — 30-second start
+- [Guide — Hooks](/guide/hooks) — hook ordering and HITL
+- [Guide — Schema](/guide/schema) — fields and Zod
+- [Analytics — Overview](/guide/analytics/) — track invocations
+- [Reference — React](/reference/react) — types for `useWebMCP` / `Scope`
+- [Browser Support](/guide/browser-support) — Chrome, Firefox, Safari
+- [Demo](/demo) — shopping cart with live `Scope`
+- [External: Chrome WebMCP API](https://developer.chrome.com/docs/ai/webmcp/imperative-api) · [External: Next.js App Router](https://nextjs.org/docs/app)

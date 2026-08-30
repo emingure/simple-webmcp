@@ -1,11 +1,16 @@
+---
+title: Vanilla JS — WebMCP Example | simple-webmcp
+description: Vanilla JS WebMCP example — wrap a function with webmcp(fn) and register without React. Vite-ready, Framework-agnostic.
+---
+
 # Vanilla JS
 
-No framework — Vite / plain JS/TS.
+No framework — Vite / plain JS/TS. See [Getting Started](/getting-started) and [Schema](/guide/schema).
 
 ```js
 // vanilla.js
 import { webmcp } from 'simple-webmcp';
-import 'simple-webmcp/polyfill'; // dev: enables modelContext in non-Chrome
+import 'simple-webmcp/dev-polyfill'; // dev only — enables modelContext in non-Chrome for local testing
 
 async function searchCustomers({ query, limit = 20 }) {
   const all = [
@@ -28,9 +33,11 @@ export const searchTool = webmcp(searchCustomers, {
 });
 
 console.log(await searchTool({ query: 'bob' }));
-await searchTool.register();
+await searchTool.register(); // uses document.modelContext — see https://developer.chrome.com/docs/ai/webmcp/imperative-api
 console.log('registered', searchTool.status);
 searchTool.unregister();
 ```
 
-Source: `examples/vanilla.js`
+For production cross-browser, use [`@mcp-b/webmcp-polyfill`](https://www.npmjs.com/package/@mcp-b/webmcp-polyfill) — see [Browser Support](/guide/browser-support). For hook-based observability, see [Analytics Step-by-Step](/guide/analytics/step-by-step).
+
+Source: `examples/vanilla.js` — see also [React example](./react) and [Schema guide](/guide/schema).

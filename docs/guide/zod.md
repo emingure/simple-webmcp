@@ -1,36 +1,19 @@
+---
+title: Zod & StandardSchema — moved to Schema
+description: Zod & StandardSchema docs merged into Schema & Inference. Redirect.
+head:
+  - - meta
+    - http-equiv: refresh
+      content: 0; url=/simple-webmcp/guide/schema.html
+---
+
 # Zod & StandardSchema
 
-Core is `6.26KB gz` without Zod; Zod is opt-in to keep lean.
+This page has moved to **[Schema & Inference — Zod & StandardSchema](/guide/schema)** (merged for better discoverability).
 
-## Enable
+- Whole schema: `webmcp(fn, { schema: z.object(...) })`
+- Per-field: `webmcp(fn, { fields: { query: z.string().describe('…') } })`
+- Side-effect import: `import 'simple-webmcp/zod'`
+- External: [Zod](https://zod.dev) · [StandardSchema](https://github.com/standard-schema/standard-schema) · [Chrome WebMCP API](https://developer.chrome.com/docs/ai/webmcp/imperative-api)
 
-```ts
-import 'simple-webmcp/zod'; // side-effect registers Zod → JSON converter
-import { z } from 'zod';
-import { webmcp } from 'simple-webmcp';
-
-webmcp(fn, { schema: z.object({ query: z.string().min(1) }) });
-webmcp(fn, { fields: { query: z.string().describe('Name') } });
-```
-
-Without the side-effect import, StandardSchema `schema` falls back to inferred/runtime placeholder and per-field Zod falls back to `{type:'string'}` — tests still pass but less accurate.
-
-## Helpers
-
-```ts
-import { zodToJsonSchema, convertZodDef } from 'simple-webmcp/zod';
-zodToJsonSchema(z.string().describe('x')); // → {type:'string', description:'x'}
-```
-
-Supports `ZodString` (checks min/max/regex/email/url/uuid), `ZodNumber` (min/max/int), `ZodEnum`, `ZodArray`, `ZodObject`, `ZodOptional/Default/Nullable/Effects`, unions etc. Valibot/ArkType via StandardSchema `validate` will pass through when converter not matched (fallback).
-
-## Whole vs per-field
-
-```ts
-// whole
-webmcp(fn, { schema: z.object({ a: z.string(), b: z.number().optional() }) });
-// per-field
-webmcp(fn, { fields: { a: z.string(), b: z.number() } });
-```
-
-Whole `schema` wins; `fields` patches descriptions/min/max.
+Redirecting to [Schema & Inference](/guide/schema)...

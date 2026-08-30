@@ -31,7 +31,7 @@ features:
     details: Core has no React dep. React adapter included — <code>useWebMCP(fn)</code> maps to <code>AbortSignal</code>.
   - icon: 🪶
     title: Lean & stable
-    details: Core 6.26KB gz. Stay on <code>webmcp(fn)</code> while WebMCP evolves underneath.
+    details: Core ~8KB gz. Stay on <code>webmcp(fn)</code> while WebMCP evolves underneath.
   - icon: 🔒
     title: Honest inference
     details: Runtime knows param names + defaults (low-confidence). Richer TS/JSDoc via optional build plugin.
@@ -77,10 +77,6 @@ const search2 = webmcp(searchCustomers, {
 });
 ```
 
-Progressive adoption: `webmcp(fn)` → add `description` → `fields` → `schema` (Zod) → build-time inference. For real cross-browser WebMCP use `@mcp-b/webmcp-polyfill`; `simple-webmcp/dev-polyfill` is for tests.
+Progressive adoption: `webmcp(fn)` → add `description` → `fields` → `schema` (Zod) → build-time inference. For real cross-browser WebMCP use [`@mcp-b/webmcp-polyfill`](https://www.npmjs.com/package/@mcp-b/webmcp-polyfill); `simple-webmcp/dev-polyfill` is for tests and dev.
 
-<div class="tip custom-block" style="padding-top: 8px">
-
-**v0.1 is validated** — `webmcp()`, `useWebMCP()`, `Scope`, `polyfill`, 42 tests. `unplugin` (0.2) and `webmcp.server()` for Next.js (0.3) are deferred behind spike.
-
-</div>
+> See [Getting Started](/getting-started) for a 30-second setup, [Schema & Inference](/guide/schema) for typing, and [Browser Support](/guide/browser-support) for Chrome/Firefox/Safari. Prefer [`webmcp(fn)`](/reference/) for function-first authoring over raw [`document.modelContext.registerTool`](https://developer.chrome.com/docs/ai/webmcp/imperative-api).

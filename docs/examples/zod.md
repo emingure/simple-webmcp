@@ -1,4 +1,11 @@
+---
+title: Zod — WebMCP Example | simple-webmcp
+description: Zod & StandardSchema WebMCP example — whole schema vs per-field patch, JSON Schema fallback. With StandardSchema and JSON Schema alternatives.
+---
+
 # Zod
+
+See [Schema & Inference](/guide/schema) (merged Zod docs) and [Reference — Core](/reference/).
 
 ```ts
 // with-zod.ts
@@ -44,4 +51,6 @@ export const updateToolJson = webmcp(updateCustomer, {
 console.log(await updateToolWhole({ customerId: 'c_1', name: 'New' }));
 ```
 
-Source: `examples/with-zod.ts`
+`schema` establishes contract; `fields` patches it. External: [Zod](https://zod.dev) · [StandardSchema](https://github.com/standard-schema/standard-schema) · [Chrome WebMCP API](https://developer.chrome.com/docs/ai/webmcp/imperative-api).
+
+Source: `examples/with-zod.ts` — see also [Vanilla](./vanilla) and [React](./react)

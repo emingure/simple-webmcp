@@ -188,7 +188,7 @@ const search = webmcp(searchCustomers, {
 **Enhance inferred schemas without rewriting them.** `fields` is a patch over the base schema (`Partial<JsonSchema>` or per-field `StandardSchema`). Whole `schema` establishes the contract; `fields` decorates it.
 
 ```ts
-// Zod — requires side-effect (keeps core 6.26KB gz lean)
+// Zod — requires side-effect (keeps core ~8KB gz lean)
 import { z } from 'zod';
 import 'simple-webmcp/zod';
 webmcp(fn, { schema: z.object({ query: z.string().min(1) }) });
@@ -225,10 +225,10 @@ Start with one function.
 | `fields` patch | ✅ | ❌ | ❌ | ❌ |
 | React lifecycle (`AbortSignal`, StrictMode) | ✅ | Manual | ✅ | ✅ |
 | Full MCP ecosystem / `getTools` etc | — (authoring) | ✅ Browser API | — | ✅ |
-| Weekly downloads | new | n/a (browser) | — | ~6k |
+| Weekly downloads | new | n/a (browser) | — | 50k+ |
 | Focus | Function-first DX | Native API | React hooks | MCP ecosystem |
 
-> **simple-webmcp + MCP-B are complementary.** `simple-webmcp` authors capabilities; MCP-B / native WebMCP is the runtime. For real cross-browser WebMCP (Firefox/Safari), use the dedicated `@mcp-b/webmcp-polyfill` (~6k weekly):
+> **simple-webmcp + MCP-B are complementary.** `simple-webmcp` authors capabilities; MCP-B / native WebMCP is the runtime. For real cross-browser WebMCP (Firefox/Safari), use the dedicated `@mcp-b/webmcp-polyfill` (50k+ weekly, 5.0.1):
 > ```bash
 > npm i @mcp-b/webmcp-polyfill && import '@mcp-b/webmcp-polyfill'
 > ```
@@ -257,7 +257,7 @@ WebMCP today is `document.modelContext` (Chrome canary, origin trial). This pack
 ## Development
 
 ```bash
-npm run build      # tsup ESM+CJS+DTS (core 6.26KB gz, zod 1.40KB separate)
+npm run build      # tsup ESM+CJS+DTS (core ~8KB gz, zod ~1.4KB separate)
 npm test           # vitest jsdom — 47 tests
 npm run typecheck
 npm run docs:dev   # VitePress

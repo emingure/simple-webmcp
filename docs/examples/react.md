@@ -1,4 +1,11 @@
+---
+title: React — useWebMCP Example | simple-webmcp
+description: React WebMCP example — useWebMCP, Scope, and WebMCPProvider. Page-level and layout-level tools with Zod fields.
+---
+
 # React
+
+See [Getting Started](/getting-started) and [React guide](/guide/react).
 
 ```tsx
 // with-react.tsx
@@ -15,6 +22,7 @@ async function addToCart({ productId, quantity }: { productId: string; quantity:
 }
 
 import { z } from 'zod'; // optional peer
+import 'simple-webmcp/zod'; // required for Zod per-field below
 export const searchTool = webmcp(searchCustomers, {
   description: 'Search customers',
   fields: {
@@ -40,7 +48,10 @@ export function ShopLayout({ children }: { children: React.ReactNode }) {
 }
 ```
 
-Source: `examples/with-react.tsx`
+Source: `examples/with-react.tsx` · Wraps [`document.modelContext.registerTool`](https://developer.chrome.com/docs/ai/webmcp/imperative-api) via `AbortSignal`.
 
 * `useWebMCP(tool)` → mounted = exposed (`AbortSignal`)
 * `<Scope tools>` → layout / route-level scope
+* For cross-browser, see [Browser Support](/guide/browser-support); for analytics, see [Analytics Overview](/guide/analytics/)
+
+See also: [Vanilla](./vanilla) · [Reference — React](/reference/react) · [Hooks](/guide/hooks)

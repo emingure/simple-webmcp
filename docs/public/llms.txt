@@ -1,0 +1,43 @@
+# simple-webmcp — LLM context
+# Title: simple-webmcp — Make JS Functions Agent-Ready | WebMCP SDK
+# Description: Function-first WebMCP SDK for JavaScript & React. Turn any function into a Model Context Protocol browser tool — webmcp(fn) stays callable.
+# Repository: https://github.com/emingure/simple-webmcp
+# Docs: https://emingure.github.io/simple-webmcp/
+
+## Pages
+- / — Introduction — Why function-first, one function two interfaces
+- /getting-started — Getting Started — Install, vanilla global/manual, React useWebMCP/Scope, Zod, polyfill, hooks
+- /guide/schema — Schema & Inference — hierarchy, fields patch, Zod & StandardSchema (merged), whole vs per-field
+- /guide/react — React — useWebMCP, Scope, WebMCPProvider
+- /guide/hooks — Hooks — before/after/error/denied lifecycle, ordering, HITL
+- /guide/analytics/ — Analytics & Observability — Overview, choose provider
+- /guide/analytics/step-by-step — Analytics Step-by-Step — 4-step generic setup
+- /guide/analytics/posthog — PostHog — step-by-step WebMCP analytics
+- /guide/analytics/sentry — Sentry — error + performance via hooks
+- /guide/analytics/ga4 — GA4 — gtag events for WebMCP tools
+- /guide/inspect — Inspect — listTools, invokeTool, Inspector devtools
+- /guide/browser-support — Browser Support & Polyfill — Chrome, Firefox, Safari, @mcp-b polyfill
+- /reference/ — Reference — Core webmcp() API (alias /api/)
+- /reference/react — Reference — React hooks
+- /reference/hooks — Reference — Hook types
+- /reference/inspect — Reference — Inspect
+- /reference/errors — Reference — Errors & Registry
+- /examples/ — Examples — gallery
+- /examples/vanilla — Vanilla JS example
+- /examples/react — React example
+- /examples/zod — Zod example
+- /demo — Live Demo — shopping cart + Hooks & HITL log
+
+## External references
+- WebMCP imperative API: https://developer.chrome.com/docs/ai/webmcp/imperative-api
+- MCP spec: https://modelcontextprotocol.io
+- Production polyfill: https://www.npmjs.com/package/@mcp-b/webmcp-polyfill
+- StandardSchema: https://github.com/standard-schema/standard-schema
+- Zod: https://zod.dev
+- PostHog docs: https://posthog.com/docs
+- Sentry docs: https://docs.sentry.io
+- GA4 gtag: https://developers.google.com/analytics/devguides/collection/ga4
+
+## Usage
+Use `webmcp(fn, {description, fields, schema})` to expose functions. See /getting-started for 30-second start.
+For integration, read /guide/hooks then /guide/analytics/step-by-step.

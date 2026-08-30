@@ -1,3 +1,8 @@
+---
+title: Live Demo — Shopping Cart & Hooks HITL | WebMCP SDK
+description: Try the WebMCP shopping cart demo — add_to_cart via agent, Hooks HITL approval, Inspect panel. Live in Chrome or with dev polyfill.
+---
+
 # Live Demo
 
 > **Try it:** The demo is a tiny shopping cart where `addToCart` is an existing function made agent-readable with one line. The **Inspect** panel below is `simple-webmcp/inspect` — same tools agents see. The new **Hooks & HITL** card logs every `before/after/error/denied` to screen and `console` (`[webmcp:hook]`).
@@ -123,13 +128,9 @@ Component lifecycle = agent capability. Route hierarchy (`app/customers/layout.t
 # in repo
 npm run build
 # demo is static — open examples/demo/index.html or run docs
-npm run docs:dev # http://localhost:5173/simple-webmcp/demo/
+npm run docs:dev # then open /demo/
 ```
-
-## Video
-
-*15-second screen capture: agent says “Add a keyboard” → `add_to_cart` executes → cart updates.* Placeholder — record in Chrome canary with WebMCP inspector.
 
 ---
 
-**[Get Started →](/getting-started)** · **[Why simple-webmcp? →](/#why-simple-webmcp)** · **[GitHub](https://github.com/emingure/simple-webmcp)**
+**[Get Started →](/getting-started)** · **[Guide — Hooks](/guide/hooks)** · **[Inspect](/guide/inspect)** · **[GitHub](https://github.com/emingure/simple-webmcp)**
