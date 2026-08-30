@@ -5,31 +5,48 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>simple-webmcp — Shopping Cart Demo + Inspect</title>
   <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:860px;margin:32px auto;padding:0 20px;line-height:1.5;color:#111}
-    .card{border:1px solid #ddd;border-radius:12px;padding:20px;margin:16px 0;background:#fafafa}
+    :root{--bg:#f8fafc;--card:#fff;--muted:#64748b;--border:#e2e8f0;--accent:#0f172a;--ok:#dcfce7;--okc:#166534;--warn:#fee2e2;--warnc:#991b1b;--info:#dbeafe;--infoc:#1e40af}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:920px;margin:32px auto;padding:0 20px;line-height:1.5;color:#111;background:var(--bg)}
+    .card{border:1px solid var(--border);border-radius:12px;padding:20px;margin:16px 0;background:var(--card);box-shadow:0 1px 2px rgba(0,0,0,.04)}
     .card.white{background:#fff}
-    button{padding:8px 14px;border-radius:8px;border:1px solid #111;background:#111;color:#fff;cursor:pointer;font-size:13px}
-    button.secondary{background:#fff;color:#111}
+    button{padding:8px 14px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;font-size:13px}
+    button.secondary{background:#fff;color:var(--accent)}
     button:disabled{opacity:0.5;cursor:not-allowed}
-    pre{background:#111;color:#0f0;padding:12px;border-radius:8px;overflow:auto;font-size:12px;white-space:pre-wrap;word-break:break-word}
-    pre.light{background:#f6f8fa;color:#111;border:1px solid #e5e7eb}
-    .muted{color:#666;font-size:13px}
-    h1 span{color:#666;font-weight:400}
+    button.small{padding:6px 10px;font-size:12px}
+    pre{background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow:auto;font-size:12px;white-space:pre-wrap;word-break:break-word}
+    pre.light{background:#f8fafc;color:#0f172a;border:1px solid var(--border)}
+    .muted{color:var(--muted);font-size:13px}
+    h1 span{color:#64748b;font-weight:400}
     .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600}
-    .badge.ok{background:#dcfce7;color:#166534}
-    .badge.warn{background:#fee2e2;color:#991b1b}
-    .badge.info{background:#dbeafe;color:#1e40af}
+    .badge.ok{background:var(--ok);color:var(--okc)}
+    .badge.warn{background:var(--warn);color:var(--warnc)}
+    .badge.info{background:var(--info);color:var(--infoc)}
     .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-    @media(max-width:700px){.grid{grid-template-columns:1fr}}
+    @media(max-width:760px){.grid{grid-template-columns:1fr}}
+    .grid3{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    @media(max-width:640px){.grid3{grid-template-columns:1fr}}
     details{margin-top:8px}
-    summary{cursor:pointer;font-size:12px;color:#666}
-    textarea{width:100%;font-family:monospace;font-size:12px;padding:8px;border-radius:8px;border:1px solid #ddd;background:#fff}
-    .inspect-tool{border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin-bottom:12px;background:#fff}
+    summary{cursor:pointer;font-size:12px;color:#475569}
+    textarea{width:100%;font-family:monospace;font-size:12px;padding:8px;border-radius:8px;border:1px solid #cbd5e1;background:#fff}
+    .inspect-tool{border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;background:#fff}
+    .product{border:1px solid var(--border);border-radius:10px;padding:14px;background:#fff;display:flex;flex-direction:column;gap:8px}
+    .product h4{margin:0;font-size:14px}
+    .product .price{font-weight:700;color:#0f172a}
+    .product .desc{font-size:12px;color:var(--muted)}
+    .cart-line{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:13px}
+    .cart-line:last-child{border-bottom:none}
+    .compare{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    @media(max-width:760px){.compare{grid-template-columns:1fr}}
+    .compare pre{margin:8px 0 0 0}
+    .compare h4{margin:0;font-size:13px;display:flex;align-items:center;gap:8px}
+    .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+    .dot.raw{background:#ef4444}
+    .dot.simple{background:#22c55e}
   </style>
 </head>
 <body>
-  <h1>simple-webmcp <span>— Shopping Cart Demo + Inspect</span></h1>
-  <p class="muted">Existing function <code>addToCart</code> made agent-ready with <code>webmcp(addToCart)</code>. Try the buttons, then use the <strong>Inspect</strong> panel to list/invoke tools — same API agents use (<code>document.modelContext</code>).</p>
+  <h1>simple-webmcp <span>— Shopping Cart Demo</span></h1>
+  <p class="muted">Your existing <code>addToCart</code> function — no rewrite — made agent-ready with one line. Try the buttons as a human, then use <strong>Inspect</strong> or the Chrome <strong>WebMCP Inspector</strong> as an agent. Same function, two interfaces.</p>
 
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
@@ -37,248 +54,324 @@
       <span id="wmcpsupport" class="badge warn">checking…</span>
     </div>
     <div id="wmcpsupport-detail" class="muted" style="margin-top:6px"></div>
-    <div class="muted" style="margin-top:8px">Chrome canary: native `document.modelContext.registerTool` + `getTools`/`executeTool`. Other browsers: <code>simple-webmcp/dev-polyfill</code> (in-memory shim for dev, not full transport). For production cross-browser use <code>@mcp-b/webmcp-polyfill</code>.</div>
+    <div class="muted" style="margin-top:8px;font-size:12px">Chrome canary: native <code>document.modelContext.registerTool</code> + <code>getTools</code>/<code>executeTool</code>. Other browsers: <code>simple-webmcp/dev-polyfill</code> shim (in-memory, not full transport). For production cross-browser use <code>@mcp-b/webmcp-polyfill</code>.</div>
   </div>
 
-  <div class="grid">
-    <div class="card white">
-      <h3>Products</h3>
-      <div style="display:flex;gap:12px;flex-wrap:wrap">
-        <div style="flex:1;min-width:180px;border:1px solid #eee;border-radius:8px;padding:12px;background:#fff">
-          <strong>MacBook</strong><br>£1,299<br><button class="secondary" onclick="addToCartUI('macbook',1)">Add MacBook</button>
-        </div>
-        <div style="flex:1;min-width:180px;border:1px solid #eee;border-radius:8px;padding:12px;background:#fff">
-          <strong>Keyboard</strong> — £99<br><button onclick="addToCartUI('keyboard',1)">Add Keyboard</button>
-        </div>
-      </div>
-      <p class="muted">Cart: <span id="cartcount">0 items</span></p>
-      <pre id="cart">[]</pre>
-    </div>
+  <!-- PRODUCTS -->
+  <div class="card white">
+    <h3 style="margin-top:0">Products — real catalog</h3>
+    <div class="grid3" id="products"></div>
+    <p class="muted" style="margin-top:12px">Each <em>Add</em> calls the <strong>same</strong> <code>addToCart</code> your agent will call. Try empty args in Inspect → it fails with <code>isError</code> (proper <code>required</code> + <code>enum</code>).</p>
+  </div>
 
-    <div class="card white">
-      <h3>How it's built — one function</h3>
-      <pre class="light">import { webmcp } from 'simple-webmcp';
+  <!-- CART -->
+  <div class="card white">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3 style="margin:0">Cart</h3>
+      <span id="cartcount" class="badge info">0 items — £0</span>
+    </div>
+    <div id="cart-empty" class="muted" style="padding:16px;text-align:center;border:1px dashed var(--border);border-radius:8px;margin-top:12px">Cart is empty — add a product or ask the agent “Add a keyboard”.</div>
+    <div id="cart-lines" style="margin-top:12px;display:none"></div>
+    <div id="cart-total" style="display:none;margin-top:12px;padding-top:12px;border-top:2px solid var(--border);display:flex;justify-content:space-between;font-weight:700"> <span>Total</span> <span id="cart-total-val">£0</span> </div>
+    <div style="margin-top:12px;display:flex;gap:8px">
+      <button onclick="checkout()" class="secondary small">Checkout (clear)</button>
+      <button onclick="document.getElementById('log').textContent=''" class="secondary small">Clear log</button>
+    </div>
+    <pre id="cart-raw" style="display:none;margin-top:12px"></pre>
+  </div>
+
+  <!-- COMPARISON — standalone, always visible -->
+  <div class="card" style="background:#0f172a;color:#e2e8f0;border-color:#0f172a">
+    <h3 style="margin:0;color:#fff">Raw WebMCP vs <code style="background:#1e293b;padding:2px 6px;border-radius:6px;color:#fff">simple-webmcp</code> — same capability</h3>
+    <p class="muted" style="color:#94a3b8;margin-top:6px">Left: what you’d write with <code>document.modelContext.registerTool</code> (schema + wrapper + lifecycle). Right: what you write with <code>webmcp</code>. Both register <code>add_to_cart</code> with <code>productId: string enum</code> + <code>quantity: integer 1–10</code>, but one keeps your function callable.</p>
+    <div class="compare" style="margin-top:14px">
+      <div>
+        <h4><span class="dot raw"></span> Raw WebMCP — 22 lines <span class="badge warn" style="margin-left:6px">manual</span></h4>
+        <pre class="light" style="background:#1e293b;color:#cbd5e1;border-color:#334155;font-size:11px">document.modelContext.registerTool({
+  name: 'add_to_cart',
+  description: 'Add product to cart',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      productId: {
+        type: 'string',
+        enum: ['macbook','keyboard','mouse','monitor'],
+        description: 'Product ID'
+      },
+      quantity: {
+        type: 'integer',
+        minimum: 1, maximum: 10,
+        default: 1
+      }
+    },
+    required: ['productId','quantity']
+  },
+  execute: ({productId, quantity}) =>
+    addToCart({productId, quantity})
+}, { signal });</pre>
+        <div class="muted" style="color:#94a3b8;font-size:11px">You maintain <code>inputSchema</code> + wrapper + <code>AbortSignal</code> yourself. <code>addToCart</code> not callable as tool.</div>
+      </div>
+      <div>
+        <h4><span class="dot simple"></span> simple-webmcp — 1 line <span class="badge ok" style="margin-left:6px">function-first</span></h4>
+        <pre class="light" style="background:#1e293b;color:#a7f3d0;border-color:#14532d;font-size:11px">import { webmcp } from 'simple-webmcp';
 const addToCartTool = webmcp(addToCart, {
-  description: 'Add product to cart'
+  description: 'Add product to cart',
+  fields: {
+    productId: {
+      type: 'string',
+      enum: ['macbook','keyboard','mouse','monitor'],
+      description: 'Product ID'
+    },
+    quantity: { type: 'integer', minimum: 1, maximum: 10, default: 1 }
+  }
 });
 // still callable:
-await addToCartTool({productId:'p1', quantity:1});
+await addToCartTool({productId:'keyboard', quantity:1});
 // vanilla: await tool.register()
-// React: const tool = useWebMCP(addToCart, {description})
-// useTool alias also: useTool(addToCart, {...})</pre>
-      <div class="muted">Without: manual <code>registerTool({name,inputSchema,execute})</code> + <code>AbortSignal</code>.<br><strong>Same function. One line.</strong></div>
-      <details><summary>Show raw <code>registerTool</code> vs <code>webmcp</code></summary>
-        <pre class="light">// raw
-document.modelContext.registerTool({
-  name: 'add_to_cart',
-  description: 'Add…',
-  inputSchema: {type:'object', properties:{productId:{type:'string'}, quantity:{type:'number'}}, required:['productId','quantity']},
-  execute: ({productId,quantity})=>addToCart({productId,quantity})
-}, {signal})
-// with simple-webmcp
-webmcp(addToCart, {description:'Add…'}) // inferred inputSchema + fields patch</pre>
-      </details>
+// React: const t = useWebMCP(addToCart, {description})
+</pre>
+        <div class="muted" style="color:#94a3b8;font-size:11px"><code>fields</code> patches inferred schema; whole <code>schema</code> (Zod) wins. No wrapper, no <code>inputSchema</code> duplication.</div>
+      </div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+      <span id="compare-status" class="badge info">checking…</span>
+      <span class="muted" style="color:#94a3b8;font-size:12px">Live: <code>add_to_cart</code> via <code>simple-webmcp</code> is <span id="compare-detail">registering…</span></span>
     </div>
   </div>
 
+  <!-- INSPECT -->
   <div class="card white" id="inspect">
-    <h3 style="margin-top:0">🔍 Inspect — tools on this page</h3>
-    <div class="muted" style="margin-bottom:12px">Lists <code>simple-webmcp/inspect</code> (<code>registry.list()</code> + <code>document.modelContext.getTools()</code>) and lets you invoke. Works with native Chrome or <code>dev-polyfill</code> shim.</div>
+    <h3 style="margin-top:0">🔍 Inspect — tools on this page <span class="muted" style="font-weight:400">(<code>simple-webmcp/inspect</code>)</span></h3>
+    <div class="muted" style="margin-bottom:12px">Lists <code>registry.list()</code> + <code>document.modelContext.getTools()</code> and lets you invoke — same path agents use. Try <code>{}</code> → you’ll get <code>isError</code> (required <code>productId</code> missing). Works with native Chrome or <code>dev-polyfill</code> shim.</div>
     <div id="inspect-list"></div>
-    <div id="inspect-empty" class="muted" style="display:none;padding:24px;text-align:center;border:1px dashed #ddd;border-radius:8px;background:#fafafa">No tools registered yet. The demo auto-registers <code>add_to_cart</code> on load — check console.</div>
-    <div class="muted" style="margin-top:8px;font-size:11px">API: <code>import { listTools, invokeTool, onToolsChanged } from 'simple-webmcp/inspect'</code> · <code>import { Inspector } from 'simple-webmcp/devtools'</code> for React.</div>
+    <div id="inspect-empty" class="muted" style="display:none;padding:24px;text-align:center;border:1px dashed var(--border);border-radius:8px;background:#fafafa">No tools registered yet. The demo auto-registers <code>add_to_cart</code> on load — check console or WebMCP status above.</div>
+    <div class="muted" style="margin-top:8px;font-size:11px">API: <code>import { listTools, invokeTool, onToolsChanged } from 'simple-webmcp/inspect'</code> · React: <code>import { Inspector } from 'simple-webmcp/devtools'</code></div>
   </div>
 
   <div class="card">
-    <h3>Log</h3>
+    <h3 style="margin-top:0">Log</h3>
     <pre id="log"></pre>
-    <button onclick="document.getElementById('log').textContent=''">Clear log</button>
+    <button onclick="document.getElementById('log').textContent=''" class="small secondary">Clear log</button>
   </div>
 
   <script type="module">
+    // ----- Catalog — real data -------------------------------------------------
+    const PRODUCTS = {
+      macbook:  { id:'macbook',  name:'MacBook Air', price: 1299, desc:'M2, 13″' },
+      keyboard: { id:'keyboard', name:'Mechanical Keyboard', price: 99, desc:'Hot-swappable' },
+      mouse:    { id:'mouse',    name:'Wireless Mouse', price: 49, desc:'Ergonomic' },
+      monitor:  { id:'monitor',  name:'4K Monitor', price: 299, desc:'27″ IPS' },
+    };
     const cart = [];
-    function renderCart() {
-      const cartEl = document.getElementById('cart');
-      const countEl = document.getElementById('cartcount');
-      if (cartEl) cartEl.textContent = JSON.stringify(cart, null, 2);
-      if (countEl) countEl.textContent = cart.length + ' items';
-    }
-    async function addToCart({ productId, quantity }) {
-      cart.push({ productId, quantity, at: new Date().toISOString() });
-      renderCart();
-      // flash cart for agent-driven updates
-      const cartEl = document.getElementById('cart');
-      if (cartEl) {
-        cartEl.style.transition = 'background 0.3s';
-        cartEl.style.background = '#dcfce7';
-        setTimeout(() => { cartEl.style.background = '#111'; }, 400);
-      }
-      const log = document.getElementById('log');
-      if (log) {
-        const via = (new Error().stack || '').includes('invokeTool') ? ' (via WebMCP/agent)' : '';
-        console.log(`[addToCart] ${productId} x${quantity}${via}`, [...cart]);
-      }
-      return { ok: true, cart: [...cart] };
-    }
 
-    // Expose for console + inspector
+    function renderProducts(){
+      const el = document.getElementById('products');
+      el.innerHTML = Object.values(PRODUCTS).map(p => `
+        <div class="product">
+          <h4>${p.name}</h4>
+          <div class="desc">${p.desc}</div>
+          <div class="price">£${p.price}</div>
+          <button onclick="addToCartUI('${p.id}',1)">Add ${p.name.split(' ')[0]}</button>
+        </div>
+      `).join('');
+    }
+    function renderCart(){
+      const linesEl = document.getElementById('cart-lines');
+      const emptyEl = document.getElementById('cart-empty');
+      const totalEl = document.getElementById('cart-total');
+      const totalVal = document.getElementById('cart-total-val');
+      const countEl = document.getElementById('cartcount');
+      const rawEl = document.getElementById('cart-raw');
+      const total = cart.reduce((s,l)=> s + PRODUCTS[l.productId].price * l.quantity, 0);
+      const count = cart.reduce((s,l)=> s + l.quantity, 0);
+      if (countEl) countEl.textContent = `${count} item${count!==1?'s':''} — £${total}`;
+      if (totalVal) totalVal.textContent = `£${total}`;
+      if (cart.length===0){
+        if(emptyEl) emptyEl.style.display='block';
+        if(linesEl) { linesEl.style.display='none'; linesEl.innerHTML=''; }
+        if(totalEl) totalEl.style.display='none';
+      } else {
+        if(emptyEl) emptyEl.style.display='none';
+        if(linesEl) {
+          linesEl.style.display='block';
+          linesEl.innerHTML = cart.map((l,i)=>`
+            <div class="cart-line">
+              <span><strong>${PRODUCTS[l.productId].name}</strong> × ${l.quantity} — £${PRODUCTS[l.productId].price * l.quantity}</span>
+              <button class="small secondary" onclick="removeFromCart(${i})">Remove</button>
+            </div>
+          `).join('');
+        }
+        if(totalEl) totalEl.style.display='flex';
+      }
+      if(rawEl) rawEl.textContent = JSON.stringify(cart,null,2);
+      // flash for agent-driven updates
+      const card = document.querySelector('#cart-lines')?.parentElement;
+      if(card && cart.length>0){
+        card.style.transition='background 0.3s';
+        const prev = card.style.background;
+        card.style.background='#dcfce7';
+        setTimeout(()=>card.style.background='#fff',400);
+      }
+    }
+    window.removeFromCart = (idx)=>{ cart.splice(idx,1); renderCart(); renderInspect(); };
+    window.checkout = ()=>{ if(cart.length===0) return; const total=cart.reduce((s,l)=> s+PRODUCTS[l.productId].price*l.quantity,0); alert(`Checkout £${total} — ${cart.length} line(s) — demo only`); cart.length=0; renderCart(); };
+
+    async function addToCart({ productId, quantity }) {
+      // Real validation — so {} and unknown productId correctly fail with isError
+      if (!productId) throw new Error('productId is required (macbook, keyboard, mouse, monitor)');
+      if (!PRODUCTS[productId]) throw new Error(`Unknown productId "${productId}". Allowed: ${Object.keys(PRODUCTS).join(', ')}`);
+      const q = Number(quantity);
+      if (!Number.isInteger(q) || q < 1 || q > 10) throw new Error('quantity must be integer 1–10');
+      // Merge if already in cart
+      const existing = cart.find(l=>l.productId===productId);
+      if(existing) existing.quantity = Math.min(10, existing.quantity + q);
+      else cart.push({ productId, quantity: q, at: new Date().toISOString() });
+      renderCart();
+      const via = (new Error().stack || '').includes('invokeTool') ? ' (via WebMCP/agent)' : '';
+      console.log(`[addToCart] ${productId} x${q}${via}`, [...cart]);
+      return { ok:true, added:{productId, quantity:q}, cart:[...cart], total: cart.reduce((s,l)=>s+PRODUCTS[l.productId].price*l.quantity,0) };
+    }
     window.cart = cart;
     window.addToCart = addToCart;
-    window.renderCart = renderCart;
+    window.PRODUCTS = PRODUCTS;
+    renderProducts();
+    renderCart();
 
-    // --- WebMCP wiring via simple-webmcp (tries native, falls back to dev-polyfill) ---
+    // --- WebMCP wiring via simple-webmcp ---
     let tool = null;
     let inspect = null;
-    async function loadWebMCP() {
-      // Try local dist first (for `npm run docs:dev` / local serve), fallback to CDN for GitHub Pages
-      const localBase = '../../dist';
-      const cdnBase = 'https://unpkg.com/simple-webmcp@latest/dist';
-      // dev-polyfill
-      try { await import(`${localBase}/dev-polyfill.js`); } catch { try { await import(`${cdnBase}/dev-polyfill.js`); } catch {} }
-      try {
-        const mod = await import(`${localBase}/index.js`);
-        const inspectMod = await import(`${localBase}/inspect.js`);
-        return { webmcp: mod.webmcp, inspect: inspectMod };
-      } catch (e) {
+    async function loadWebMCP(){
+      const localBase='../../dist';
+      const cdnBase='https://unpkg.com/simple-webmcp@latest/dist';
+      try{ await import(`${localBase}/dev-polyfill.js`);}catch{ try{ await import(`${cdnBase}/dev-polyfill.js`);}catch{}}
+      try{
+        const mod=await import(`${localBase}/index.js`);
+        const inspectMod=await import(`${localBase}/inspect.js`);
+        return {webmcp:mod.webmcp, inspect:inspectMod};
+      }catch(e){
         console.log('[demo] local dist not found, trying CDN', String(e).slice(0,120));
-        const mod = await import(`${cdnBase}/index.js`);
-        const inspectMod = await import(`${cdnBase}/inspect.js`);
-        // also ensure CDN dev-polyfill loaded
-        try { await import(`${cdnBase}/dev-polyfill.js`); } catch {}
-        return { webmcp: mod.webmcp, inspect: inspectMod };
+        const mod=await import(`${cdnBase}/index.js`);
+        const inspectMod=await import(`${cdnBase}/inspect.js`);
+        try{ await import(`${cdnBase}/dev-polyfill.js`);}catch{}
+        return {webmcp:mod.webmcp, inspect:inspectMod};
       }
     }
-    async function setupWebMCP() {
-      const supportEl = document.getElementById('wmcpsupport');
-      const detailEl = document.getElementById('wmcpsupport-detail');
-      try {
-        const loaded = await loadWebMCP();
-        const { webmcp } = loaded;
-        inspect = loaded.inspect;
-        tool = webmcp(addToCart, {
-          description: 'Add product to shopping cart',
-          fields: {
-            productId: { description: 'Product ID (macbook, keyboard)' },
-            quantity: { type: 'integer', minimum: 1, description: 'Quantity' }
+    async function setupWebMCP(){
+      const supportEl=document.getElementById('wmcpsupport');
+      const detailEl=document.getElementById('wmcpsupport-detail');
+      const compareStatus=document.getElementById('compare-status');
+      const compareDetail=document.getElementById('compare-detail');
+      try{
+        const loaded=await loadWebMCP();
+        const {webmcp}=loaded;
+        inspect=loaded.inspect;
+        tool=webmcp(addToCart,{
+          description:'Add product to shopping cart',
+          fields:{
+            productId:{ type:'string', enum:Object.keys(PRODUCTS), description:'Product ID' },
+            quantity:{ type:'integer', minimum:1, maximum:10, default:1, description:'Quantity 1–10' }
           },
-          annotations: { readOnlyHint: false }
+          annotations:{ readOnlyHint:false }
         });
-        // Expose for inspect panel and console
-        window.addToCartTool = tool;
+        window.addToCartTool=tool;
         console.log('[demo] webmcp tool', tool.tool);
-
-        // Register — will be 'unsupported' in non-Chrome without shim, but dev-polyfill makes it 'registered'
-        const unregister = await tool.register();
-        window._demoUnregister = unregister;
-        console.log('[demo] tool.register() ->', tool.status, 'supported:', inspect.isSupported?.() ?? 'unknown');
-
-        const supported = inspect.isSupported ? inspect.isSupported() : !!(document.modelContext && document.modelContext.registerTool);
-        supportEl.textContent = supported ? (document.modelContext?._isPolyfill ? 'dev shim (registered)' : 'native WebMCP') : 'unsupported';
-        supportEl.className = 'badge ' + (supported ? (document.modelContext?._isPolyfill ? 'info' : 'ok') : 'warn');
-        detailEl.textContent = `tool "${tool.tool.name}" status: ${tool.status} — isSupported: ${supported} — try Inspect panel below or Chrome inspector.`;
-
-        // Also log registry
-        if (inspect.listTools) {
-          console.log('[demo] inspect listTools()', inspect.listTools());
-        }
+        const unregister=await tool.register();
+        window._demoUnregister=unregister;
+        console.log('[demo] tool.register() ->', tool.status);
+        const supported=inspect.isSupported ? inspect.isSupported() : !!(document.modelContext && document.modelContext.registerTool);
+        supportEl.textContent=supported ? (document.modelContext?._isPolyfill ? 'dev shim (registered)' : 'native WebMCP') : 'unsupported';
+        supportEl.className='badge ' + (supported ? (document.modelContext?._isPolyfill ? 'info' : 'ok') : 'warn');
+        detailEl.textContent=`tool "${tool.tool.name}" status: ${tool.status} — isSupported: ${supported} — try Inspect below or Chrome WebMCP Inspector.`;
+        compareStatus.textContent = tool.status==='registered' ? 'live' : tool.status;
+        compareStatus.className='badge ' + (tool.status==='registered' ? 'ok' : 'warn');
+        compareDetail.textContent = tool.status==='registered' ? 'registered as add_to_cart — same function, one line' : tool.status;
+        if(inspect.listTools) console.log('[demo] inspect listTools()', inspect.listTools());
         renderInspect();
-        // Subscribe to tool changes
-        if (inspect.onToolsChanged) {
-          inspect.onToolsChanged(() => renderInspect());
-        }
-      } catch (e) {
-        console.warn('[demo] WebMCP setup failed', e);
-        supportEl.textContent = 'error';
-        supportEl.className = 'badge warn';
-        detailEl.textContent = String(e?.message ?? e);
+        if(inspect.onToolsChanged) inspect.onToolsChanged(()=>renderInspect());
+      }catch(e){
+        console.warn('[demo] WebMCP setup failed',e);
+        supportEl.textContent='error';
+        supportEl.className='badge warn';
+        detailEl.textContent=String(e?.message??e);
+        compareStatus.textContent='error';
+        compareStatus.className='badge warn';
         renderInspect(true);
       }
     }
 
-    // --- UI helpers ---
-    window.addToCartUI = async (productId, quantity) => {
-      const res = await addToCart({ productId, quantity });
-      const log = document.getElementById('log');
-      log.textContent += `addToCartUI({ productId: '${productId}', quantity: ${quantity} }) → ${JSON.stringify(res)}\n`;
+    window.addToCartUI=async(productId,quantity)=>{
+      const res=await addToCart({productId,quantity});
+      const log=document.getElementById('log');
+      log.textContent+=`addToCartUI({ productId:'${productId}', quantity:${quantity} }) → ${JSON.stringify(res).slice(0,200)}\n`;
       renderInspect();
     };
 
-    function renderInspect(forceEmpty) {
-      const listEl = document.getElementById('inspect-list');
-      const emptyEl = document.getElementById('inspect-empty');
-      if (!inspect || !listEl) return;
-      const tools = forceEmpty ? [] : (inspect.listTools ? inspect.listTools() : []);
-      if (tools.length === 0) {
-        listEl.innerHTML = '';
-        emptyEl.style.display = 'block';
+    function renderInspect(forceEmpty){
+      const listEl=document.getElementById('inspect-list');
+      const emptyEl=document.getElementById('inspect-empty');
+      if(!inspect||!listEl) return;
+      const tools=forceEmpty?[]:(inspect.listTools?inspect.listTools():[]);
+      if(tools.length===0){
+        listEl.innerHTML='';
+        emptyEl.style.display='block';
         return;
       }
-      emptyEl.style.display = 'none';
-      listEl.innerHTML = tools.map(t => `
+      emptyEl.style.display='none';
+      listEl.innerHTML=tools.map(t=>`
         <div class="inspect-tool">
           <div style="display:flex;justify-content:space-between;gap:12px">
             <div>
               <div style="font-weight:700;font-family:monospace;font-size:13px">${t.name}</div>
-              <div style="color:#555;font-size:13px">${t.description || '<span style="color:#999">No description</span>'}</div>
+              <div style="color:#555;font-size:13px">${t.description||'<span style="color:#999">No description</span>'}</div>
               <div style="font-size:11px;color:#888;margin-top:4px">
-                <span class="badge ${t.registered ? 'ok' : 'warn'}">${t.status}</span>
-                <span style="margin-left:6px">${t.source || 'registry'}</span>
+                <span class="badge ${t.registered?'ok':'warn'}">${t.status}</span>
+                <span style="margin-left:6px">${t.source||'registry'}</span>
+                <span style="margin-left:6px;font-size:10px">${t.inputSchema?.properties?.productId?.enum ? 'enum: '+t.inputSchema.properties.productId.enum.join(',') : ''}</span>
               </div>
             </div>
           </div>
-          <details style="margin-top:8px"><summary>inputSchema</summary><pre class="light" style="max-height:160px;overflow:auto">${JSON.stringify(t.inputSchema, null, 2)}</pre></details>
+          <details style="margin-top:8px"><summary>inputSchema (productId: string enum, quantity: integer 1–10)</summary><pre class="light" style="max-height:180px;overflow:auto">${JSON.stringify(t.inputSchema,null,2)}</pre></details>
           <div style="margin-top:10px">
-            <div style="font-size:12px;font-weight:600">Invoke</div>
+            <div style="font-size:12px;font-weight:600">Invoke — try {} to see isError, or valid {productId,quantity}</div>
             <textarea id="args-${t.name}" rows="3" placeholder='{"productId":"keyboard","quantity":1}' style="margin-top:4px">{"productId":"keyboard","quantity":1}</textarea>
-            <button onclick="invokeToolUI('${t.name}')">Invoke ${t.name}</button>
+            <div style="display:flex;gap:8px;margin-top:6px">
+              <button onclick="invokeToolUI('${t.name}')">Invoke ${t.name}</button>
+              <button class="secondary small" onclick="document.getElementById('args-${t.name}').value='{}'; invokeToolUI('${t.name}')">Try {} (should fail)</button>
+            </div>
             <pre id="res-${t.name}" style="display:none;margin-top:8px"></pre>
           </div>
         </div>
       `).join('');
     }
-
-    window.invokeToolUI = async (name) => {
-      const textarea = document.getElementById(`args-${name}`);
-      const resEl = document.getElementById(`res-${name}`);
-      const log = document.getElementById('log');
-      try {
-        const args = textarea.value.trim() ? JSON.parse(textarea.value) : {};
-        resEl.style.display = 'block';
-        resEl.textContent = 'Invoking…';
-        resEl.style.background = '#111';
-        resEl.style.color = '#0f0';
-        const res = await inspect.invokeTool(name, args);
-        resEl.textContent = typeof res === 'string' ? res : JSON.stringify(res, null, 2);
-        resEl.style.background = '#f0fdf4';
-        resEl.style.color = '#065f46';
-        // Update cart view if this was add_to_cart
-        if (res && res.cart) {
-          document.getElementById('cart').textContent = JSON.stringify(res.cart, null, 2);
-          document.getElementById('cartcount').textContent = res.cart.length + ' items';
-        } else if (res && res.content && res.content[0] && res.content[0].text) {
-          try {
-            const parsed = JSON.parse(res.content[0].text);
-            if (parsed && parsed.cart) {
-              document.getElementById('cart').textContent = JSON.stringify(parsed.cart, null, 2);
-              document.getElementById('cartcount').textContent = parsed.cart.length + ' items';
-            }
-          } catch {}
-        }
-        log.textContent += `invokeTool('${name}', ${textarea.value}) → ${JSON.stringify(res).slice(0,300)}\n`;
-      } catch (e) {
-        resEl.style.display = 'block';
-        resEl.textContent = 'Error: ' + (e?.message ?? String(e));
-        resEl.style.background = '#fef2f2';
-        resEl.style.color = '#b91c1c';
-        log.textContent += `invokeTool('${name}') error: ${e?.message ?? e}\n`;
+    window.invokeToolUI=async(name)=>{
+      const ta=document.getElementById(`args-${name}`);
+      const resEl=document.getElementById(`res-${name}`);
+      const log=document.getElementById('log');
+      try{
+        const args=ta.value.trim()?JSON.parse(ta.value):{};
+        resEl.style.display='block';
+        resEl.textContent='Invoking…';
+        resEl.style.background='#0f172a';
+        resEl.style.color='#e2e8f0';
+        const res=await inspect.invokeTool(name,args);
+        const isErr = res && (res.isError || res.error);
+        resEl.textContent=typeof res==='string'?res:JSON.stringify(res,null,2);
+        resEl.style.background=isErr?'#fef2f2':'#f0fdf4';
+        resEl.style.color=isErr?'#b91c1c':'#065f46';
+        // cart is already rendered by addToCart, just re-render to sync
+        renderCart();
+        log.textContent+=`invokeTool('${name}', ${ta.value}) → ${JSON.stringify(res).slice(0,400)}\n`;
+      }catch(e){
+        resEl.style.display='block';
+        resEl.textContent='Error: '+(e?.message??String(e));
+        resEl.style.background='#fef2f2';
+        resEl.style.color='#b91c1c';
+        log.textContent+=`invokeTool('${name}') error: ${e?.message??e}\n`;
       }
     };
-
-    // Auto-setup
     setupWebMCP();
-    // Fallback render if imports fail (e.g., file:// without server)
-    setTimeout(() => { if (!inspect) renderInspect(true); }, 800);
-    console.log('Demo ready — same function, two interfaces: human button and agent tool. Inspect panel below uses simple-webmcp/inspect.');
+    setTimeout(()=>{ if(!inspect) renderInspect(true); },800);
+    console.log('Demo ready — same function, two interfaces. Inspect uses simple-webmcp/inspect.');
   </script>
 </body>
 </html>
