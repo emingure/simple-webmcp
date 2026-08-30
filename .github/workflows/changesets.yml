@@ -1,32 +1,17 @@
 name: Changesets
 
-# Automates semver + CHANGELOG via Changesets
-# - On PRs: validates changeset files exist when needed (via `changeset bot`)
-# - On push to main: creates/updates a "Version Packages" PR; merging it publishes to npm + GitHub
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
-  workflow_dispatch:
 
 permissions:
   contents: write
   pull-requests: write
   id-token: write
 
-concurrency:
-  group: changesets-${{ github.ref }}
-  cancel-in-progress: false
-
 jobs:
   changesets:
-    # Two release paths:
-    # - Path A (Changesets): feature PR has `.changeset/*.md` → bot creates Version PR → merge → publish via `changeset publish` here.
-    # - Path B (manual): `npm version minor` → tag `v*` → `release.yml` publishes. Skip this job for that manual bump to avoid double publish.
-    if: >-
-      (github.event_name != 'pull_request' || github.repository == 'emingure/simple-webmcp') &&
-      (!startsWith(github.event.head_commit.message, 'chore(release):') || contains(github.event.head_commit.message, 'version packages'))
+    if: github.repository == 'emingure/simple-webmcp'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -41,25 +26,11 @@ jobs:
 
       - run: npm ci
 
-      - name: Create Release Pull Request or Publish
-        id: changesets
-        uses: changesets/action@v1
+      - uses: changesets/action@v1
         with:
-          # Path A: creates Version PR; merging it runs `publish` (npm + GitHub Release) here.
-          # Path B (manual tag) is handled by `release.yml`, not here — condition above skips that commit.
           publish: npm run release
           version: npm run changeset:version
-          commit: 'chore(release): version packages'
-          title: 'chore(release): version packages'
           createGithubReleases: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      # Fallback: also run checks on PRs without changesets
-      - name: Verify build on PR
-        if: github.event_name == 'pull_request'
-        run: |
-          npm run typecheck
-          npm test
-          npm run build
