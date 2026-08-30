@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-30
+
+### Added
+- `hooks` — `before` / `after` / `error` / `denied` lifecycle hooks for `webmcp(fn, {hooks})` — state-based, no chain abstraction — `src/hooks/types.ts:1`, `src/hooks/engine.ts:1`, `src/hooks/config.ts:1` (`invocationId` `crypto.randomUUID` || fallback, `metadata` mutable bag, cooperative `AbortSignal`, safe observers)
+- Global hooks via `webmcp.configure({hooks})` / `configureWebMCP` / `getGlobalHooks` / `resetGlobalHooks` — `src/hooks/config.ts:1` singleton `__simpleWebmcp_hooks`, double-wrap concat — `src/webmcp.ts:8`
+- Scoped hooks via `<WebMCPProvider hooks>` — `src/hooks/provider.tsx:1` (`WebMCPHooksContext`, nesting merges additively, `before: global→scoped→tool`, `after: tool→scoped→global`) — `src/react/useWebMCP.ts:7`, `src/react/index.ts:1`
+- `WebMCPOptions.hooks` and `WebMCPTool.__hooks/__scopeHooks/__activeSignal` — `src/types.ts:68` (`AfterContext` typed `Awaited<ReturnType<F>>`)
+- Demo **Hooks & HITL** — `examples/demo/index.html:1` (global `trackInvocation/trackResult/trackError/trackDenied` + `addRequestMeta`/`redactCheckoutAfter`, tool-level `requireApproval` async modal for `checkout` with `action:'deny'`, hook log UI + `console [webmcp:hook]`, `Test deny`/`Test error` buttons) — synced `docs/public/demo/index.html`
+- Docs: `docs/guide/hooks.md:1` (lifecycle, ordering, HITL, tenant/auth patterns), `docs/api/hooks.md:1` (contexts, `WebMCPHooks`, `mergeHooksOrdered`, `createHookedExecute`), `docs/guide/analytics.md:1` (PostHog, Mixpanel, Amplitude, GA4, Segment, Sentry, Datadog, Vercel, Plausible, React tenant)
+- Tests: `tests/hooks.test.ts:1` (15 tests: before/after chain, deny, error swallow, metadata, direct-call bypass, global ordering, merge, validation after before, abort) + `tests/hooks-react.test.tsx:1` (5 tests: provider ordering, nesting, scoped mutate, scoped deny, raw fn with provider) — 67 total
+- `src/internal/normalize.ts:43` (`normalizeError` now handles `DOMException.message`)
+
+### Changed
+- `src/webmcp.ts` — `validate` now via `standard['~standard'].validate` and `ValidationError`
+- `docs/.vitepress/config.ts:8` — sidebar adds *Hooks* + *Analytics*; `docs/api/index.md`, `docs/api/react.md`, `docs/guide/react.md`, `docs/demo.md`, `docs/getting-started.md`, `README.md` mention hooks
+- Core `+~0.8KB gz` (`6.26KB gz` → `~7.1KB`)
+
+### Fixed
+- `denied` now returns `{isError:true, content:[{text:'Denied: …'}]}` and runs `denied[]` without `after` — `src/hooks/engine.ts:119`
+- `error` hooks swallow throws and never recurse — `src/hooks/engine.ts:31`
+
 ## [0.2.0] - 2026-08-29
 
 ### Added
@@ -62,6 +83,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Scope` moved to react, not next
 - Polyfill not hard-coded, no `/__webmcp.json` in 0.1
 
-[Unreleased]: https://github.com/emingure/simple-webmcp/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/emingure/simple-webmcp/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/emingure/simple-webmcp/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/emingure/simple-webmcp/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/emingure/simple-webmcp/releases/tag/v0.1.0
